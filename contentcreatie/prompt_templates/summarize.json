@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Schema voor Document Samenvatting",
+  "description": "Valideert de structuur van de samenvatting gegenereerd door het taalmodel.",
+  "type": "object",
+  "properties": {
+    "content": {
+      "description": "De volledige samenvatting van het document, in het Nederlands.",
+      "type": "string"
+    },
+    "metadata": {
+      "description": "Bevat metadata over de samenvatting.",
+      "type": "object",
+      "properties": {
+        "extracted_question": {
+          "description": "Een array met de letterlijk overgenomen vraag en het bijbehorende antwoord.",
+          "type": "array",
+          "items": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "Tags": {
+          "description": "Een lijst met relevante trefwoorden.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "extracted_question",
+        "Tags"
+      ]
+    }
+  },
+  "required": [
+    "content",
+    "metadata"
+  ]
+}

@@ -1,0 +1,14 @@
+faiss-cpu
+openai
+pandas
+pdfplumber
+ipykernel
+PyMuPDF
+python-dotenv
+jinja2
+jsonschema
+dash
+streamlit
+pydantic-settings
+typer[all]
+streamlit-aggrid
