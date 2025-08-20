@@ -12,3 +12,4 @@ streamlit
 pydantic-settings
 typer[all]
 streamlit-aggrid
+nicegui
