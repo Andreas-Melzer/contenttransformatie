@@ -1,0 +1,7 @@
+{% for message in project.messages %}
+    <div class="chat-message {{ message.role }}">
+        <div class="message-content">
+            {{ message.content }}
+        </div>
+    </div>
+{% endfor %}

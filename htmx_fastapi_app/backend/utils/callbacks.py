@@ -1,8 +1,9 @@
+# backend/utils/callbacks.py
 import json
 from typing import Any, Dict, Optional
 
-def nicegui_tool_callback(tool_call: Dict[str, Any], project: Dict):
-    """Callback die de UI van een specifiek project bijwerkt."""
+def tool_callback(tool_call: Dict[str, Any], project: Dict):
+    """Callback that updates the project state based on a tool call."""
     function_name = tool_call.get('function', {}).get('name')
     try:
         args = json.loads(tool_call.get('function', {}).get('arguments', '{}'))
@@ -18,8 +19,8 @@ def nicegui_tool_callback(tool_call: Dict[str, Any], project: Dict):
     elif function_name == "update_scratchpad":
         project["scratchpad"] = args.get("tasks", [])
 
-def nicegui_tool_result_callback(tool_result: Dict[str, Any], project: Dict) -> Optional[str]:
-    """Callback die de resultaten van een tool verwerkt voor een specifiek project."""
+def tool_result_callback(tool_result: Dict[str, Any], project: Dict) -> Optional[str]:
+    """Callback that processes tool results and updates the project state."""
     function_name = tool_result.get("function_name")
 
     if function_name == "vector_search":
@@ -30,7 +31,6 @@ def nicegui_tool_result_callback(tool_result: Dict[str, Any], project: Dict) -> 
             for doc_info in documents:
                 doc_id = doc_info.get('id')
                 if doc_id and doc_id not in project["shortlist"]:
-                    # De UI-staat ('selected') wordt hier niet meer bijgehouden
                     project["shortlist"][doc_id] = {'relevance': None}
         except (json.JSONDecodeError, AttributeError):
             pass

@@ -1,3 +1,5 @@
+import os
+import sys
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 from typing import Dict, List, Optional
@@ -13,7 +15,7 @@ class ClientSettings(BaseModel):
 class Settings(BaseSettings):
     """Main application settings."""
     # --- General ---
-    data_root: str = "data"
+    data_root: str = "../data"
     content_folder: str = "content"
 
     # --- Client Configurations ---
@@ -29,7 +31,8 @@ class Settings(BaseSettings):
         "gpt-4.1-mini": "azure",
         "gpt-oss-120b": "azure",
         "gpt-5-mini": "azure_eus2",
-        "gpt-5": "azure_eus2"
+        "gpt-5": "azure_eus2",
+        "local": "local"
     }
     embedding_client_map: Dict[str, str] = {
         "text-embedding-3-large": "azure",
@@ -52,7 +55,26 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # --- Load environment variables into the client settings ---
-config = dotenv_values(".env")
+# Try to find the .env file in different locations
+env_file_paths = [
+    ".env",
+    "../.env",
+    "../../.env",
+    os.path.join(os.path.dirname(__file__), "..", ".env"),
+    os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+]
+
+config = {}
+for path in env_file_paths:
+    if os.path.exists(path):
+        print(f"Loading .env file from: {path}")
+        config = dotenv_values(path)
+        break
+    else:
+        print(f".env file not found at: {path}")
+
+if not config:
+    print("Warning: No .env file found. Using default settings.")
 
 if config.get("AZURE_OPENAI_API_KEY"):
     settings.clients["azure"].api_key = config["AZURE_OPENAI_API_KEY"]

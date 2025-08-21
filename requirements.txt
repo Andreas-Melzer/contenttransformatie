@@ -13,3 +13,4 @@ pydantic-settings
 typer[all]
 streamlit-aggrid
 nicegui
+Whoosh-Reloaded
