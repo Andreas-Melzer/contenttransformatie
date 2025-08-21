@@ -8,14 +8,14 @@ from dotenv import dotenv_values
 class ClientSettings(BaseModel):
     """Configuration for a single API client."""
     api_key: Optional[str] = None
-    api_version: Optional[str] = "2025-01-01-preview"
+    api_version: Optional[str] = "2025-03-01-preview"
     azure_endpoint: Optional[str] = None
     base_url: Optional[str] = None
 
 class Settings(BaseSettings):
     """Main application settings."""
     # --- General ---
-    data_root: str = "../data"
+    data_root: str = "data"
     content_folder: str = "content"
 
     # --- Client Configurations ---
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     }
 
     # --- Default Models ---
-    llm_model: str = "gpt-5-mini"
+    llm_model: str = "gpt-4.1-mini"
     embedding_model: str = "text-embedding-3-large"
 
     # --- Document Stores ---

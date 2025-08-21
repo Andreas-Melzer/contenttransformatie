@@ -16,7 +16,7 @@ console = Console()
 @app.command()
 def ingest_data():
     """Runs the data ingestion pipeline to process new documents."""
-    llm = LLMProcessor(client_name=settings.llm_client_name, model=settings.llm_model, default_post_process=lambda x: x)
+    llm = LLMProcessor(model=settings.llm_model, default_post_process=lambda x: x)
     doc_store = DocumentStore(settings.raw_doc_store_name, settings.data_root, settings.indexed_metadata_keys)
     summary_doc_store = DocumentStore(settings.summary_doc_store_name, settings.data_root, settings.summary_indexed_metadata_keys)
 
@@ -26,8 +26,8 @@ def ingest_data():
 @app.command()
 def chat():
     """Starts an interactive chat session with the RAG agent."""
-    llm = LLMProcessor(client_name=settings.llm_client_name, model=settings.llm_model)
-    embed = EmbeddingProcessor(client_name=settings.embedding_client_name, embedding_model=settings.embedding_model)
+    llm = LLMProcessor( model=settings.llm_model)
+    embed = EmbeddingProcessor(embedding_model=settings.embedding_model)
     summary_doc_store = DocumentStore(settings.summary_doc_store_name, settings.data_root, settings.summary_indexed_metadata_keys)
     embedding = VectorStore(embedder=embed, doc_store=summary_doc_store)
 
