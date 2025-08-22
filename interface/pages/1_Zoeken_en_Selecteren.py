@@ -4,7 +4,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
 from interface.utils.component_loader import load_components
 from interface.utils.ui_components import display_document_viewer
 from interface.utils.project_manager import get_active_project
-from interface.utils.ui_components import display_document_table
+from interface.utils.ui_components import display_document_dashboard
 
 # Pagina setup
 st.set_page_config(layout="wide")
@@ -14,7 +14,7 @@ active_project = get_active_project()
 if not active_project:
     st.error("Selecteer alstublieft een project op het dashboard.")
     if st.button("Ga naar Dashboard"):
-        st.switch_page("app.py")
+        st.switch_page("Project_Selectie.py")
     st.stop()
 
 agent, doc_store = load_components(active_project)
@@ -22,7 +22,6 @@ agent, doc_store = load_components(active_project)
 if 'selected_doc_ids' not in st.session_state:
     st.session_state.selected_doc_ids = []
 if 'aggrid_data' not in st.session_state:
-    
     st.session_state.aggrid_data = None
 
 with st.sidebar:
@@ -43,7 +42,6 @@ with st.sidebar:
     if prompt := st.chat_input("Stel uw vraag..."):
         active_project["messages"].append({"role": "user", "content": prompt})
         active_project["selected_doc_id"] = None
-        # Reset selecties bij nieuwe vragen
         st.session_state.selected_doc_ids = []
         st.rerun()
 
@@ -64,11 +62,10 @@ st.subheader("Gevonden Documenten")
 
 if not active_project["shortlist"]:
     st.info("De agent heeft nog geen documenten gevonden. Stel een vraag in de chat om te beginnen.")
-    
-elif active_project.get("selected_doc_id"):
-    display_document_viewer(doc_store, active_project)
 else:
-    display_document_table(doc_store, active_project)
+    display_document_dashboard(doc_store, active_project)
+
+        
 
 if active_project["messages"] and active_project["messages"][-1]["role"] == "user":
     with st.sidebar:
