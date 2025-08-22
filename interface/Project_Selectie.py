@@ -21,62 +21,59 @@ st.title("Content Projecten")
 
 
 
-col1 , col2 = st.columns(2)
-with col1:
-    # Nieuw Project Aanmaken
-    st.header("Nieuw Project Starten")
-    with st.form("new_project_form"):
-        project_question = st.text_area(
-            "Wat is de vraag uit de nieuwe structuur die in dit document beantwoord wordt?"
-        )
-        submitted = st.form_submit_button("Maak Nieuw Project")
-        if submitted and project_question:
-            project_id = str(uuid.uuid4())
-            create_project(project_id, project_question)
-            st.success(f"Project '{project_question}' succesvol aangemaakt!")
-with col2:
-    st.header("Bestaande Projecten")
-    projects = get_all_projects() # Assuming this function is defined elsewhere
+# Nieuw Project Aanmaken
+st.header("Nieuw Project Starten")
+with st.form("new_project_form"):
+    project_question = st.text_area(
+        "Wat is de vraag uit de nieuwe structuur die in dit document beantwoord wordt?"
+    )
+    submitted = st.form_submit_button("Maak Nieuw Project")
+    if submitted and project_question:
+        project_id = str(uuid.uuid4())
+        create_project(project_id, project_question)
+        st.success(f"Project '{project_question}' succesvol aangemaakt!")
+st.header("Bestaande Projecten")
+projects = get_all_projects() # Assuming this function is defined elsewhere
 
-    if not projects:
-        st.info("Er zijn nog geen projecten. Maak hierboven een nieuw project aan om te beginnen.")
+if not projects:
+    st.info("Er zijn nog geen projecten. Maak hierboven een nieuw project aan om te beginnen.")
+else:
+    project_list = []
+    for project_id, data in projects.items():
+        project_list.append({
+            "project_id": project_id,
+            "vraag": data["vraag"],
+            "documenten": len(data.get("shortlist", {}))
+        })
+    
+    df = pd.DataFrame(project_list)
+    search_vraag = st.text_input("Zoek op project vraag:", placeholder="Typ hier om te zoeken...")
+    if search_vraag:
+        filtered_df = df[df['vraag'].str.contains(search_vraag, case=False, na=False)]
     else:
-        project_list = []
-        for project_id, data in projects.items():
-            project_list.append({
-                "project_id": project_id,
-                "vraag": data["vraag"],
-                "documenten": len(data.get("shortlist", {}))
-            })
+        filtered_df = df
+
+    st.dataframe(
+        filtered_df,
+        key='projects_grid',  # A unique key to store selection state
+        on_select="rerun",
+        selection_mode="single-row",
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "project_id": None,  # Hides the project_id column from view
+            "vraag": st.column_config.TextColumn("Vraag", width="large"),
+            "documenten": st.column_config.NumberColumn("Aantal Documenten", format="%d")
+        },
+        height=400
+    )
+
+    selection = st.session_state.get('projects_grid')
+    print(selection)
+    if selection and 'rows' in selection['selection'] and len(selection['selection']['rows']) > 0:
+        selected_row_index = selection['selection']['rows'][0]
         
-        df = pd.DataFrame(project_list)
-        search_vraag = st.text_input("Zoek op project vraag:", placeholder="Typ hier om te zoeken...")
-        if search_vraag:
-            filtered_df = df[df['vraag'].str.contains(search_vraag, case=False, na=False)]
-        else:
-            filtered_df = df
-
-        st.dataframe(
-            filtered_df,
-            key='projects_grid',  # A unique key to store selection state
-            on_select="rerun",
-            selection_mode="single-row",
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "project_id": None,  # Hides the project_id column from view
-                "vraag": st.column_config.TextColumn("Vraag", width="large"),
-                "documenten": st.column_config.NumberColumn("Aantal Documenten", format="%d")
-            },
-            height=400
-        )
-
-        selection = st.session_state.get('projects_grid')
-        print(selection)
-        if selection and 'rows' in selection['selection'] and len(selection['selection']['rows']) > 0:
-            selected_row_index = selection['selection']['rows'][0]
-            
-            selected_project_id = filtered_df.iloc[selected_row_index]['project_id']
-            
-            st.session_state.active_project_id = selected_project_id
-            st.switch_page("pages/1_Zoeken_en_Selecteren.py")
+        selected_project_id = filtered_df.iloc[selected_row_index]['project_id']
+        
+        st.session_state.active_project_id = selected_project_id
+        st.switch_page("pages/1_Zoeken_en_Selecteren.py")
