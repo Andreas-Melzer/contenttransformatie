@@ -17,17 +17,14 @@ if not active_project:
         st.switch_page("app.py")
     st.stop()
 
-# Laad de zware componenten (agent, doc_store)
 agent, doc_store = load_components(active_project)
 
-# Initialiseer session state voor selecties als die nog niet bestaat
 if 'selected_doc_ids' not in st.session_state:
     st.session_state.selected_doc_ids = []
 if 'aggrid_data' not in st.session_state:
     
     st.session_state.aggrid_data = None
 
-# --- Sidebar met de chat ---
 with st.sidebar:
     st.title("Zoek agent")
     st.write("Stel hier vervolgvragen om relevante documenten te vinden.")
@@ -83,6 +80,5 @@ if active_project["messages"] and active_project["messages"][-1]["role"] == "use
                 final_response = agent.chat(query=query, max_tool_turns=15)
                 active_project["messages"].append({"role": "assistant", "content": final_response})
                 active_project["scratchpad"] = agent.scratchpad
-    # Reset selecties bij nieuwe berichten van de agent
     st.session_state.selected_doc_ids = []
     st.rerun()

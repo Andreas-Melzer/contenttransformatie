@@ -18,6 +18,7 @@ def create_project(project_id: str, vraag: str):
         "scratchpad": [],
         "consolidated_content": None,
         "rewritten_content": None,
+        "saved_selection_consolidate" :[],
         "validated": False
     }
 
