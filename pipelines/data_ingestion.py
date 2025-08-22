@@ -17,26 +17,27 @@ class DataIngestionPipeline:
         self.summary_doc_store = summary_doc_store
         self.kme_vertaaltabel = pd.read_csv(os.path.join(self.settings.data_root, "kme_vertaaltabel.csv"), sep=';').set_index("KME_ID")
 
-    def _check_for_new_content(self) -> list[str]:
-        document_ids = os.listdir(self.settings.content_folder)
-        new_document_ids = [doc_id for doc_id in document_ids if doc_id not in self.doc_store.documents.keys() and doc_id.endswith(".pdf")]
-        return new_document_ids
+    def _check_for_new_content(self):
+        filenames = [(k,v)[1].metadata['filename'] for k,v in self.doc_store.documents.items()]
+        found_filenames = os.listdir('content')
+        new_document_filenames = [filename for filename in found_filenames if filename not in filenames and filename.endswith(".pdf")]
+        return new_document_filenames
 
     def _process_new_documents(self, new_document_ids: list[str]):
         new_content_doc = process_folder_concurrently(self.settings.content_folder, max_workers=8, filenames_to_process=new_document_ids)
 
         docs = []
-        for k, doc in new_content_doc.items():
+        for filename, doc in new_content_doc.items():
             kme_tax = self.kme_vertaaltabel.loc[doc.km_number]
             metadata = {
-                'km_number': doc.km_number,
+                'filename': filename,
                 'datum': doc.date,
                 'BELASTINGSOORT': kme_tax['BELASTINGSOORT'],
                 'PROCES_ONDERWERP': kme_tax['PROCES_ONDERWERP'],
                 'PRODUCT_SUBONDERWERP': kme_tax['PRODUCT_SUBONDERWERP'],
                 'VRAAG': kme_tax['VRAAG'],
             }
-            new_doc = Document(k, doc.title, doc.full_text, metadata)
+            new_doc = Document(doc.km_number, doc.title, doc.full_text, metadata)
             docs.append(new_doc)
         self.doc_store.add(docs)
 
@@ -44,8 +45,8 @@ class DataIngestionPipeline:
         summary_processor = PromptBuilder(template_path='prompt_templates', name='summarize')
         processed_docs = []
 
-        for k, doc in tqdm(self.doc_store.documents.items()):
-            if k not in self.summary_doc_store.documents.keys():
+        for doc_id, doc in tqdm(self.doc_store.documents.items()):
+            if doc_id not in self.summary_doc_store.documents.keys():
                 try:
                     prompt = summary_processor.create_prompt(
                         document=doc.content,
@@ -59,12 +60,12 @@ class DataIngestionPipeline:
                     output = self.llm.process(prompt)
                     output_json = output.content
                     if summary_processor.verify_json(output_json):
-                        new_summary = KMEDocument(id=k, title=doc.title, content=output_json['content'], metadata=output_json['metadata'])
+                        new_summary = KMEDocument(id=doc_id, title=doc.title, content=output_json['content'], metadata=output_json['metadata'])
                         new_summary.metadata.update(doc.metadata)
                         new_summary.metadata["full_text"] = doc.content
                         processed_docs.append(new_summary)
                 except Exception as e:
-                    print(f"Error summarizing document {k}: {e}")
+                    print(f"Error summarizing document {doc_id}: {e}")
                     continue
 
         if processed_docs:

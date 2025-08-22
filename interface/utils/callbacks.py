@@ -30,7 +30,6 @@ def streamlit_tool_result_callback(tool_result: Dict[str, Any], project: Dict) -
             for doc_info in documents:
                 doc_id = doc_info.get('id')
                 if doc_id and doc_id not in project["shortlist"]:
-                    # De UI-staat ('selected') wordt hier niet meer bijgehouden
                     project["shortlist"][doc_id] = {'relevance': None}
         except (json.JSONDecodeError, AttributeError):
             pass

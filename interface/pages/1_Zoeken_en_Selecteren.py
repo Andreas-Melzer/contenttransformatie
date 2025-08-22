@@ -24,11 +24,12 @@ agent, doc_store = load_components(active_project)
 if 'selected_doc_ids' not in st.session_state:
     st.session_state.selected_doc_ids = []
 if 'aggrid_data' not in st.session_state:
+    
     st.session_state.aggrid_data = None
 
 # --- Sidebar met de chat ---
 with st.sidebar:
-    st.title("🤖 Onderzoeksagent")
+    st.title("Zoek agent")
     st.write("Stel hier vervolgvragen om relevante documenten te vinden.")
     st.divider()
 
@@ -60,19 +61,18 @@ with st.sidebar:
                 task_text = task.get('task', 'N/A')
                 st.markdown(f"✅ ~~{task_text}~~" if completed else f"☐ {task_text}")
 
-# --- Hoofd content ---
 st.title(f"Project: \"{active_project['vraag']}\"")
 st.header("Stap 1: Zoeken en Selecteren van Documenten")
 st.subheader("Gevonden Documenten")
 
 if not active_project["shortlist"]:
     st.info("De agent heeft nog geen documenten gevonden. Stel een vraag in de chat om te beginnen.")
+    
 elif active_project.get("selected_doc_id"):
     display_document_viewer(doc_store, active_project)
 else:
     display_document_table(doc_store, active_project)
 
-# --- Agent logica ---
 if active_project["messages"] and active_project["messages"][-1]["role"] == "user":
     with st.sidebar:
         with st.chat_message("assistant"):

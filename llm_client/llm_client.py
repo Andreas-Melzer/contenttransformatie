@@ -82,7 +82,7 @@ class LLMResult:
         :param processor: Optional[Callable[[str], Any]], An optional callable to apply to the raw content, defaults to None.
         :return: None,
         """
-        self._raw_response = response
+        self.api_response = response
         self._processor = processor
 
     @property
@@ -91,7 +91,7 @@ class LLMResult:
 
         :return: openai.types.chat.chat_completion_message.ChatCompletionMessage, The first message object from the response choices.
         """
-        return self._raw_response.choices[0].message
+        return self.api_response.choices[0].message
 
     @property
     def raw_content(self) -> Optional[str]:
@@ -134,9 +134,12 @@ class LLMResult:
 
         :return: Dict[str, int], A dictionary with token usage stats.
         """
-        return dict(self._raw_response.usage) if self._raw_response.usage else {}
+        return dict(self.api_response.usage) if self.api_response.usage else {}
 
-
+REASONING_MODELS = [
+ "gpt-5-mini",
+ "gpt-5"   
+]
 class LLMProcessor(_BaseClient):
     """A client for making Chat Completion API requests and returning structured results."""
     def __init__(
@@ -164,13 +167,14 @@ class LLMProcessor(_BaseClient):
         self.system_prompt = system_prompt
         self.default_post_process = default_post_process
         self._client = self._get_client(self.client_name)
-        self.temperature = 1
+        self.temperature = temperature
 
     def process(
         self,
         messages: List[Dict[str, Any]],
         post_process: Optional[Callable[[str], Any]] = None,
         max_completion_tokens: Optional[int] = None,
+        reasoning_effort : Optional[str] = "low",
         **kwargs: Any
     ) -> LLMResult:
         """Sends a request to the model and returns a wrapped LLMResult.
@@ -178,6 +182,7 @@ class LLMProcessor(_BaseClient):
         :param messages: List[Dict[str, Any]], A list of messages conforming to the OpenAI API structure.
         :param post_process: Optional[Callable[[str], Any]], A processor for this response, overriding the instance default, defaults to None.
         :param max_completion_tokens: Optional[int], The maximum number of tokens to generate, defaults to None.
+        :param reasoning_effort: Optional[str] any of "minimal","low","medium","high"
         :param kwargs: Any, Other OpenAI chat completion parameters (e.g., temperature).
         :return: LLMResult, An LLMResult object wrapping the API response.
         """
@@ -187,20 +192,20 @@ class LLMProcessor(_BaseClient):
         if self.system_prompt and not any(m['role'] == 'system' for m in full_messages):
             full_messages.insert(0, {"role": "system", "content": self.system_prompt})
 
-        # --- BUG FIX ---
-        # Only include max_tokens in the request if it is not None.
         request_params = {
             "model": self.model,
             "temperature": self.temperature,
             "messages": full_messages,
             **kwargs
         }
+        
+        if self.model in REASONING_MODELS:
+            request_params['reasoning_effort'] = reasoning_effort
         if max_completion_tokens is not None:
             request_params["max_tokens"] = max_completion_tokens
     
         completion = self._client.chat.completions.create(**request_params)
-        # --- END BUG FIX ---
-        
+
         return LLMResult(response=completion, processor=processor_to_use)
 
 class EmbeddingProcessor(_BaseClient):

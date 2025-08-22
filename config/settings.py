@@ -14,16 +14,14 @@ class ClientSettings(BaseModel):
 
 class Settings(BaseSettings):
     """Main application settings."""
-    # --- General ---
     data_root: str = "data"
     content_folder: str = "content"
-
-    # --- Client Configurations ---
+    
     clients: Dict[str, ClientSettings] = {
         "azure": ClientSettings(),
         "azure_eus2": ClientSettings(),
         "openrouter": ClientSettings(base_url="https://openrouter.ai/api/v1"),
-        "local": ClientSettings(base_url="http://127.0.0.1:8188/v1", api_key="not_required")
+        "local": ClientSettings(base_url="http://127.0.0.1:1234/v1", api_key="not_required")
     }
 
     # --- Model to Client Mapping ---
@@ -32,17 +30,17 @@ class Settings(BaseSettings):
         "gpt-oss-120b": "azure",
         "gpt-5-mini": "azure_eus2",
         "gpt-5": "azure_eus2",
-        "local": "local"
+        "openai/gpt-oss-20b": "local",
+        "qwen/qwen3-4b-2507" : "local",
+        "mistralai/devstral-small-2507":"local"
     }
     embedding_client_map: Dict[str, str] = {
         "text-embedding-3-large": "azure",
     }
 
-    # --- Default Models ---
-    llm_model: str = "gpt-4.1-mini"
+    llm_model: str =  "qwen/qwen3-4b-2507"
     embedding_model: str = "text-embedding-3-large"
 
-    # --- Document Stores ---
     raw_doc_store_name: str = "kme_content"
     summary_doc_store_name: str = "kme_content_summarized"
     indexed_metadata_keys: List[str] = ["BELASTINGSOORT", "PROCES_ONDERWERP", "PRODUCT_SUBONDERWERP", "km_number"]
@@ -54,8 +52,6 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# --- Load environment variables into the client settings ---
-# Try to find the .env file in different locations
 env_file_paths = [
     ".env",
     "../.env",

@@ -53,8 +53,6 @@ class PDFProcessor:
     """
     def __init__(self):
         """Initializes the PDFProcessor."""
-        # Section headers to look for in the document body.
-        # The key is the dataclass field, the value is a list of possible text aliases.
         self.section_headers = {
             "private_info": ["Private information", "Privéantwoord"],
             "interne_info": ["Interne informatie"],
@@ -70,29 +68,21 @@ class PDFProcessor:
         :rtype: dict
         """
         extracted_data = {}
-        # Use get_text("dict") for the most detailed structural information.
         page_dict = page.get_text("dict")
 
-        # CORRECTED LOGIC: Sort the blocks by vertical position (y0) before processing.
         blocks = page_dict.get("blocks", [])
         blocks.sort(key=lambda b: b['bbox'][1])
 
         all_lines = []
-        for block in blocks: # Iterate through the now-sorted blocks
+        for block in blocks: 
             for line in block.get("lines", []):
-                # Consolidate all spans in a line to get the full line text and its bbox
                 line_text = "".join(span['text'] for span in line['spans'])
                 all_lines.append({'bbox': line['bbox'], 'text': line_text})
 
-        # This sort is now somewhat redundant but ensures line-level order.
         all_lines.sort(key=lambda x: x['bbox'][1])
         extracted_data['full_text'] = " ".join([line['text'] for line in all_lines])
-        # --- Find Anchor Lines ---
-        km_mgmt_anchor = None
-        date_km_anchor = None
-        section_anchors = []
 
-        # --- Find Anchor Lines ---
+
         km_mgmt_anchor = None
         date_km_anchor = None
         section_anchors = []
@@ -107,14 +97,12 @@ class PDFProcessor:
                         section_anchors.append({'key': key, 'y0': line['bbox'][1], 'y1': line['bbox'][3]})
                         break
 
-        # --- Extract Header Info ---
         if date_km_anchor:
             date_match = re.search(r'(\d{2}/\d{2}/\d{4})', date_km_anchor['text'])
             km_match = re.search(r'\b(KM\d+)\b', date_km_anchor['text'], re.IGNORECASE)
             extracted_data['date'] = date_match.group(1) if date_match else None
             extracted_data['km_number'] = km_match.group(1) if km_match else None
 
-        # --- Extract title --- 
         def clean_chars(text):
             text = text.replace('\xa0', ' ')
             text = re.sub(r'[\ue000-\uf8ff]', '', text).strip()
@@ -194,10 +182,8 @@ def process_folder_concurrently(
     # If a specific list of filenames is provided, filter the list.
     if filenames_to_process:
         logging.info(f"Filtering based on provided list of {len(filenames_to_process)} filenames.")
-        # Use a set for efficient lookup
         filenames_set = set(filenames_to_process)
         pdf_files = [p for p in pdf_files if p.name in filenames_set]
-    # --- MODIFICATION END ---
 
     if not pdf_files:
         logging.warning(f"No PDF files found to process in '{folder_path}'.")

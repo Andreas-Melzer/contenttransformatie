@@ -16,7 +16,6 @@ def create_project(project_id: str, vraag: str):
         "shortlist": {},
         "selected_doc_id": None,
         "scratchpad": [],
-        # Voorbereid voor toekomstige stappen
         "consolidated_content": None,
         "rewritten_content": None,
         "validated": False

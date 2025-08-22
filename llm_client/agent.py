@@ -19,8 +19,8 @@ class MultiTurnAgent:
         self.max_history_turns = max_history_turns
         self.messages: List[Dict[str, Any]] = []
         self.scratchpad: List[Dict[str, Any]] = []
-        self.prompt_history : List
-        self.response_history : List
+        self.prompt_history : List = []
+        self.response_history : List = []
 
         scratchpad_schema = {
             "type": "function",
@@ -67,9 +67,9 @@ class MultiTurnAgent:
         
         for _ in range(max_tool_turns):
             history_with_scratchpad = self._inject_scratchpad_into_history(self._get_conversation_window())
-            self.hist
+            self.prompt_history.append(history_with_scratchpad)
             result = self.llm_processor.process(history_with_scratchpad, tools=self.tool_schemas, tool_choice="auto")
-            
+            self.response_history.append(result)
             if not result.thinking:
                 self.messages.append(dict(result.message))
                 return result.raw_content or "I could not generate a response."

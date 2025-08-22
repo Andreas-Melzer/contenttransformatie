@@ -30,21 +30,18 @@ def display_document_viewer(doc_store, project: dict):
 def display_document_table(doc_store, project: dict):
     """Versie met directe state updates en bredere layout."""
     
-    # Initialize selectie in session state
     if 'selected_docs' not in st.session_state:
         st.session_state.selected_docs = set()
     
     docs_list = []
     for doc_id, shortlist_info in project["shortlist"].items():
-        docs = doc_store.search(f"km_number:{doc_id}")
-        if docs:
-            doc = docs[0]
-            docs_list.append({
-                'id': doc_id,
-                'doc': doc,
-                'relevance': shortlist_info.get('relevance')
-            })
-    
+        doc = doc_store.documents[doc_id]
+        docs_list.append({
+            'id': doc_id,
+            'doc': doc,
+            'relevance': shortlist_info.get('relevance')
+        })
+
     # Sorteer op relevantie
     def get_relevance_score(item):
         try:

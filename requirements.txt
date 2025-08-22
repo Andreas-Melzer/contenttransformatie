@@ -11,6 +11,6 @@ dash
 streamlit
 pydantic-settings
 typer[all]
-streamlit-aggrid
+streamlit-aggrid==1.1.7
 nicegui
 Whoosh-Reloaded
