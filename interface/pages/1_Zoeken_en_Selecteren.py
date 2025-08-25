@@ -1,15 +1,12 @@
 import streamlit as st
-import pandas as pd
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, JsCode
-from interface.utils.component_loader import load_components
-from interface.utils.ui_components import display_document_viewer
+from interface.utils.component_loader import load_heavy_components
 from interface.utils.project_manager import get_active_project
 from interface.utils.ui_components import display_document_dashboard
 
 # Pagina setup
 st.set_page_config(layout="wide")
 
-# Haal het actieve project op. Zonder actief project werkt deze pagina niet.
+# Haal het actieve project op.
 active_project = get_active_project()
 if not active_project:
     st.error("Selecteer alstublieft een project op het dashboard.")
@@ -17,7 +14,11 @@ if not active_project:
         st.switch_page("Project_Selectie.py")
     st.stop()
 
-agent, doc_store = load_components(active_project)
+# Haal de zware componenten op (wordt gecached door streamlit)
+_, doc_store, _ = load_heavy_components()
+
+# De agent is al geïnitialiseerd en is onderdeel van het project object.
+agent = active_project.agent
 
 if 'selected_doc_ids' not in st.session_state:
     st.session_state.selected_doc_ids = []
@@ -31,7 +32,7 @@ with st.sidebar:
 
     chat_container = st.container(height=300)
     with chat_container:
-        for message in active_project["messages"]:
+        for message in active_project.messages:
             if message["role"] == "user":
                 with st.chat_message("user"):
                     st.markdown(message["content"])
@@ -40,14 +41,14 @@ with st.sidebar:
                     st.markdown(message["content"])
 
     if prompt := st.chat_input("Stel uw vraag..."):
-        active_project["messages"].append({"role": "user", "content": prompt})
-        active_project["selected_doc_id"] = None
+        active_project.messages.append({"role": "user", "content": prompt})
+        active_project.selected_doc_id = None
         st.session_state.selected_doc_ids = []
         st.rerun()
 
     st.divider()
     with st.expander("Kladblok van de Agent"):
-        scratchpad = active_project.get("scratchpad", [])
+        scratchpad = active_project.scratchpad
         if not scratchpad:
             st.caption("Het kladblok is leeg.")
         else:
@@ -56,26 +57,26 @@ with st.sidebar:
                 task_text = task.get('task', 'N/A')
                 st.markdown(f"✅ ~~{task_text}~~" if completed else f"☐ {task_text}")
 
-st.title(f"Project: \"{active_project['vraag']}\"")
+st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 1: Zoeken en Selecteren van Documenten")
 st.subheader("Gevonden Documenten")
 
-if not active_project["shortlist"]:
+if not active_project.shortlist:
     st.info("De agent heeft nog geen documenten gevonden. Stel een vraag in de chat om te beginnen.")
 else:
     display_document_dashboard(doc_store, active_project)
 
-        
-
-if active_project["messages"] and active_project["messages"][-1]["role"] == "user":
+if agent and active_project.messages and active_project.messages[-1]["role"] == "user":
     with st.sidebar:
         with st.chat_message("assistant"):
             with st.spinner("Agent is aan het werk..."):
-                agent.messages = active_project["messages"]
-                agent.scratchpad = active_project["scratchpad"]
-                query = active_project["messages"][-1]["content"]
+                # Synchroniseer de agent state met het project
+                agent.messages = active_project.messages
+                agent.scratchpad = active_project.scratchpad
+                query = active_project.messages[-1]["content"]
                 final_response = agent.chat(query=query, max_tool_turns=15)
-                active_project["messages"].append({"role": "assistant", "content": final_response})
-                active_project["scratchpad"] = agent.scratchpad
+                active_project.messages.append({"role": "assistant", "content": final_response})
+                # Synchroniseer terug
+                active_project.scratchpad = agent.scratchpad
     st.session_state.selected_doc_ids = []
     st.rerun()

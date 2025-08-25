@@ -45,14 +45,8 @@ class StructuredDocument:
     source_file: str | None = None
     full_text:str | None = None
 
-
 class PDFProcessor:
-    """
-    A class to process PDF files by analyzing their layout using PyMuPDF (fitz).
-    This approach extracts structured data based on the geometric position of text blocks.
-    """
     def __init__(self):
-        """Initializes the PDFProcessor."""
         self.section_headers = {
             "private_info": ["Private information", "Privéantwoord"],
             "interne_info": ["Interne informatie"],
@@ -60,13 +54,6 @@ class PDFProcessor:
         }
 
     def parse_page_with_pymupdf(self, page: fitz.Page) -> dict:
-        """Parses a single page using its detailed dictionary structure.
-
-        :param page: The page object to analyze.
-        :type page: fitz.Page
-        :return: A dictionary with the extracted data fields for this page.
-        :rtype: dict
-        """
         extracted_data = {}
         page_dict = page.get_text("dict")
 
@@ -74,7 +61,7 @@ class PDFProcessor:
         blocks.sort(key=lambda b: b['bbox'][1])
 
         all_lines = []
-        for block in blocks: 
+        for block in blocks:
             for line in block.get("lines", []):
                 line_text = "".join(span['text'] for span in line['spans'])
                 all_lines.append({'bbox': line['bbox'], 'text': line_text})
@@ -82,14 +69,12 @@ class PDFProcessor:
         all_lines.sort(key=lambda x: x['bbox'][1])
         extracted_data['full_text'] = " ".join([line['text'] for line in all_lines])
 
-
-        km_mgmt_anchor = None
         date_km_anchor = None
         section_anchors = []
 
         for line in all_lines:
             text = line['text']
-            if re.search(r'\d{2}/\d{2}/\d{4}', text) and re.search(r'KM\d+', text):
+            if re.search(r'\d{2}/\d{2}/\d{4}', text) and re.search(r'\bKM\d+\b', text, re.IGNORECASE):
                 date_km_anchor = {'y0': line['bbox'][1], 'text': text}
             else:
                 for key, aliases in self.section_headers.items():
@@ -97,58 +82,99 @@ class PDFProcessor:
                         section_anchors.append({'key': key, 'y0': line['bbox'][1], 'y1': line['bbox'][3]})
                         break
 
+        # Extract date / KM if present on this page
         if date_km_anchor:
             date_match = re.search(r'(\d{2}/\d{2}/\d{4})', date_km_anchor['text'])
             km_match = re.search(r'\b(KM\d+)\b', date_km_anchor['text'], re.IGNORECASE)
             extracted_data['date'] = date_match.group(1) if date_match else None
-            extracted_data['km_number'] = km_match.group(1) if km_match else None
+            extracted_data['km_number'] = km_match.group(1).upper() if km_match else None
+        else:
+            extracted_data['date'] = None
+            extracted_data['km_number'] = None
 
-        def clean_chars(text):
+        def clean_chars(text: str) -> str:
             text = text.replace('\xa0', ' ')
             text = re.sub(r'[\ue000-\uf8ff]', '', text).strip()
             return text
 
-        title =[clean_chars(line['text']) for line in all_lines if  line['bbox'][1] < date_km_anchor['y0'] if clean_chars(line['text']) != '']
-        extracted_data['title'] = title[0] if title else ''
+        # Title only determinable if we have the date/KM anchor on this page
+        if date_km_anchor:
+            title_lines = [
+                clean_chars(line['text'])
+                for line in all_lines
+                if line['bbox'][1] < date_km_anchor['y0'] and clean_chars(line['text']) != ''
+            ]
+            extracted_data['title'] = title_lines[0] if title_lines else None
+        else:
+            extracted_data['title'] = None
 
+        # Capture sections between anchors
         all_anchors = sorted(section_anchors, key=itemgetter('y0'))
         for i, anchor in enumerate(all_anchors):
             start_y = anchor['y1']
-            end_y = all_anchors[i+1]['y0'] if i + 1 < len(all_anchors) else page.rect.height
+            end_y = all_anchors[i + 1]['y0'] if i + 1 < len(all_anchors) else page.rect.height
 
             content_lines = [
                 line['text'] for line in all_lines
                 if line['bbox'][1] >= start_y and line['bbox'][3] <= end_y
             ]
-            
-            extracted_data[anchor['key']] = "\n".join(content_lines).strip()
+            content = "\n".join(content_lines).strip()
+            if content:
+                extracted_data[anchor['key']] = content
 
         return extracted_data
 
     def process_single_file(self, pdf_path: Path) -> tuple[str, StructuredDocument] | None:
-        """Worker function to process a single PDF file using PyMuPDF.
-
-        :param pdf_path: The path to the PDF file to process.
-        :type pdf_path: Path
-        :return: A tuple with the filename and its StructuredDocument, or None on failure.
-        :rtype: tuple[str, StructuredDocument] | None
-        """
         logging.info(f"Starting processing for: {pdf_path.name}")
         try:
             with fitz.open(pdf_path) as doc:
                 if not len(doc):
                     logging.warning(f"'{pdf_path.name}' contains no pages.")
                     return None
-                
-                first_page = doc.load_page(0)
-                page_data = self.parse_page_with_pymupdf(first_page)
-                page_data['source_file'] = pdf_path.name
-                
-                for field in StructuredDocument.__dataclass_fields__:
-                    if field not in page_data:
-                        page_data[field] = None
 
-                return (pdf_path.name, StructuredDocument(**page_data))
+                # Accumulator for the whole document
+                acc: dict[str, str | None] = {
+                    'km_number': None,
+                    'date': None,
+                    'title': None,
+                    'private_info': '',
+                    'interne_info': '',
+                    'tags': '',
+                    'full_text': '',
+                    'source_file': pdf_path.name,
+                }
+
+                for page_index in range(len(doc)):
+                    page = doc.load_page(page_index)
+                    page_data = self.parse_page_with_pymupdf(page)
+
+                    # First non-empty wins for these:
+                    for k in ('km_number', 'date', 'title'):
+                        if acc[k] in (None, '') and page_data.get(k):
+                            acc[k] = page_data[k]
+
+                    # Concatenate section content
+                    for k in ('private_info', 'interne_info', 'tags'):
+                        v = page_data.get(k)
+                        if v:
+                            if acc[k]:
+                                acc[k] += "\n"
+                            acc[k] += v
+
+                    # Full text of the whole doc
+                    ft = page_data.get('full_text')
+                    if ft:
+                        if acc['full_text']:
+                            acc['full_text'] += "\n"
+                        acc['full_text'] += ft
+
+                # Normalize empty strings to None where the dataclass expects Optional[str]
+                for k in ('private_info', 'interne_info', 'tags', 'full_text'):
+                    if isinstance(acc[k], str) and acc[k].strip() == '':
+                        acc[k] = None
+
+                return (pdf_path.name, StructuredDocument(**acc))
+
         except Exception as e:
             logging.error(f"Critical error processing '{pdf_path.name}': {e}", exc_info=True)
             return None

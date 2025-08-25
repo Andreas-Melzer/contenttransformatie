@@ -5,7 +5,7 @@ import dotenv
 import sys
 from typing import Callable, Optional, Dict, Any, List, Union
 from openai.types.chat import ChatCompletion
-
+from json_extractor import JsonExtractor
 from config.settings import settings
 
 dotenv.load_dotenv()
@@ -30,6 +30,10 @@ def json_post_process(raw_output: str) -> Any:
     except json.JSONDecodeError:
         print("Warning: Failed to decode LLM output as JSON.", file=sys.stderr)
         return None
+    
+def json_decode(raw_output:str) -> Any:
+    obj = JsonExtractor.extract_valid_json(raw_output)
+    return obj
 
 class _BaseClient:
     """A base class to handle shared API client initialization."""

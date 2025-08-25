@@ -8,7 +8,7 @@ from kme_doc import KMEDocument
 
         
 
-llm = llm_client.LLMProcessor(model= "gpt-5-mini",default_post_process=llm_client.json_post_process)
+llm = llm_client.LLMProcessor(model= "openai/gpt-oss-20b",default_post_process=llm_client.json_decode)
 embed = llm_client.EmbeddingProcessor(embedding_model='text-embedding-3-large')
 doc_store = DocumentStore("kme_content",'data',indexed_metadata_keys=["BELASTINGSOORT","PROCES_ONDERWERP","PRODUCT_SUBONDERWERP",'km_number'])
 summary_doc_store = DocumentStore("kme_content_summarized",'data',indexed_metadata_keys=["title","BELASTINGSOORT","PROCES_ONDERWERP","PRODUCT_SUBONDERWERP",'Tags','km_number'])

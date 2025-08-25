@@ -7,7 +7,10 @@ from llm_client.prompt_builder import PromptBuilder
 from llm_client.tools.vector_search_tool import VectorSearchTool
 from llm_client.tools.document_shortlist_tool import DocumentShortlistTool
 from interface.utils.callbacks import streamlit_tool_callback, streamlit_tool_result_callback
-from typing import Dict
+
+# Forward declaration for type hinting
+class Project:
+    pass
 
 @st.cache_resource
 def load_heavy_components():
@@ -26,12 +29,11 @@ def load_heavy_components():
         settings.summary_indexed_metadata_keys
     )
     vector_store = VectorStore(embedder=embedder, doc_store=summary_doc_store)
-    return llm, embedder, doc_store, vector_store
+    return llm, doc_store, vector_store
 
-def load_components(project: Dict):
-    """Laadt alle componenten en configureert de agent voor een specifiek project."""
-    llm, embedder, doc_store, vector_store = load_heavy_components()
-
+def initialize_agent_for_project(project: "Project", llm: LLMProcessor, vector_store: VectorStore) -> MultiTurnAgent:
+    """Initialiseert en configureert de agent voor een specifiek project."""
+    
     # Gebruik een lambda om de project-context mee te geven aan de callbacks
     on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
     on_result_with_project = lambda tool_result: streamlit_tool_result_callback(tool_result, project)
@@ -51,5 +53,4 @@ def load_components(project: Dict):
         prompt_processor=PromptBuilder('prompt_templates', 'search'),
         tools=[vs_tool, shortlist_tool]
     )
-
-    return agent, doc_store
+    return agent

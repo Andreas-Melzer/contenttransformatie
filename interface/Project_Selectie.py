@@ -1,10 +1,9 @@
 import streamlit as st
 import uuid
-from interface.utils.project_manager import create_project, get_all_projects, initialize_projects
+from interface.utils.project_manager import create_project, get_all_projects
+from interface.utils.session_state import initialize_session_state
 from interface.styles.custom_css import apply_custom_css
-import streamlit as st
 import pandas as pd
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
 
 # Pagina Configuratie en Initialisatie
 logo_url = "https://www.belastingdienst.nl/bld-assets/bld/rhslogos/bld_logo.svg"
@@ -14,12 +13,10 @@ st.set_page_config(
     layout="wide",
 )
 apply_custom_css()
-initialize_projects()
+initialize_session_state() # Centralized session state initialization
 
 st.image(logo_url, width=500)
 st.title("Content Projecten")
-
-
 
 # Nieuw Project Aanmaken
 st.header("Nieuw Project Starten")
@@ -32,20 +29,21 @@ with st.form("new_project_form"):
         project_id = str(uuid.uuid4())
         create_project(project_id, project_question)
         st.success(f"Project '{project_question}' succesvol aangemaakt!")
+
 st.header("Bestaande Projecten")
-projects = get_all_projects() # Assuming this function is defined elsewhere
+projects = get_all_projects()
 
 if not projects:
     st.info("Er zijn nog geen projecten. Maak hierboven een nieuw project aan om te beginnen.")
 else:
     project_list = []
-    for project_id, data in projects.items():
+    for project_id, project in projects.items():
         project_list.append({
-            "project_id": project_id,
-            "vraag": data["vraag"],
-            "documenten": len(data.get("shortlist", {}))
+            "project_id": project.id,
+            "vraag": project.vraag,
+            "documenten": len(project.shortlist)
         })
-    
+
     df = pd.DataFrame(project_list)
     search_vraag = st.text_input("Zoek op project vraag:", placeholder="Typ hier om te zoeken...")
     if search_vraag:
@@ -55,13 +53,13 @@ else:
 
     st.dataframe(
         filtered_df,
-        key='projects_grid',  # A unique key to store selection state
+        key='projects_grid',
         on_select="rerun",
         selection_mode="single-row",
         use_container_width=True,
         hide_index=True,
         column_config={
-            "project_id": None,  # Hides the project_id column from view
+            "project_id": None,
             "vraag": st.column_config.TextColumn("Vraag", width="large"),
             "documenten": st.column_config.NumberColumn("Aantal Documenten", format="%d")
         },
@@ -69,11 +67,8 @@ else:
     )
 
     selection = st.session_state.get('projects_grid')
-    print(selection)
     if selection and 'rows' in selection['selection'] and len(selection['selection']['rows']) > 0:
         selected_row_index = selection['selection']['rows'][0]
-        
         selected_project_id = filtered_df.iloc[selected_row_index]['project_id']
-        
         st.session_state.active_project_id = selected_project_id
         st.switch_page("pages/1_Zoeken_en_Selecteren.py")

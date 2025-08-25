@@ -38,7 +38,7 @@ class Settings(BaseSettings):
         "text-embedding-3-large": "azure",
     }
 
-    llm_model: str =  "gpt-5-mini"
+    llm_model: str =  "openai/gpt-oss-20b"
     embedding_model: str = "text-embedding-3-large"
 
     raw_doc_store_name: str = "kme_content"
