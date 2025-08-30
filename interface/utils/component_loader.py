@@ -6,11 +6,11 @@ from llm_client.agent import MultiTurnAgent
 from llm_client.prompt_builder import PromptBuilder
 from llm_client.tools.vector_search_tool import VectorSearchTool
 from llm_client.tools.document_shortlist_tool import DocumentShortlistTool
-from interface.utils.callbacks import streamlit_tool_callback, streamlit_tool_result_callback
-
-# Forward declaration for type hinting
-class Project:
-    pass
+from llm_client.tools.list_selected_documents_tool import ListSelectedDocumentsTool
+from llm_client.tools.read_documents_tool import ReadDocumentsTool
+from interface.utils.callbacks import streamlit_tool_callback, streamlit_tool_result_callback, list_documents_callback
+from project import Project
+import json
 
 @st.cache_resource
 def load_heavy_components():
@@ -31,13 +31,15 @@ def load_heavy_components():
     vector_store = VectorStore(embedder=embedder, doc_store=summary_doc_store)
     return llm, doc_store,summary_doc_store, vector_store
 
-def initialize_agent_for_project(project: "Project", llm: LLMProcessor, vector_store: VectorStore) -> MultiTurnAgent:
+
+
+def initialize_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, summary_doc_store : DocumentStore) -> MultiTurnAgent:
     """Initialiseert en configureert de agent voor een specifiek project."""
     
     # Gebruik een lambda om de project-context mee te geven aan de callbacks
     on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
     on_result_with_project = lambda tool_result: streamlit_tool_result_callback(tool_result, project)
-
+    on_list_documents = lambda tool_result: list_documents_callback(tool_result, project)
     # Initialiseer de tools met de project-specifieke callbacks
     vs_tool = VectorSearchTool(
         vector_store=vector_store,
@@ -46,11 +48,17 @@ def initialize_agent_for_project(project: "Project", llm: LLMProcessor, vector_s
     shortlist_tool = DocumentShortlistTool(
         on_call=on_call_with_project
     )
+    list_tool = ListSelectedDocumentsTool(
+        on_result=on_list_documents
+    )
+    read_tool = ReadDocumentsTool(
+        doc_store=summary_doc_store
+    )
 
     # Initialiseer de agent
     agent = MultiTurnAgent(
         llm_processor=llm,
         prompt_processor=PromptBuilder('prompt_templates', 'search'),
-        tools=[vs_tool, shortlist_tool]
+        tools=[vs_tool, shortlist_tool, list_tool, read_tool]
     )
     return agent

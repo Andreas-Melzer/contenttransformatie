@@ -5,9 +5,9 @@ from interface.utils.component_loader import load_heavy_components, initialize_a
 def create_project(project_id: str, vraag: str):
     """Maakt een nieuw project aan, initialiseert de agent en voegt het toe aan de session state."""
     # Stap 1: Laad de zware, gedeelde componenten (gecached)
-    llm, _, _,  vector_store = load_heavy_components()
+    llm, _, summary_doc_store,  vector_store = load_heavy_components()
     project = Project(vraag, project_id)
-    project.agent = initialize_agent_for_project(project, llm, vector_store)
+    project.agent = initialize_agent_for_project(project, llm, vector_store,summary_doc_store)
     st.session_state.projects[project_id] = project
 
 def get_all_projects():

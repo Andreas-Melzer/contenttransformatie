@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict, Optional
 from project import Project
 
-def streamlit_tool_callback(tool_call: Dict[str, Any], project: "Project"):
+def streamlit_tool_callback(tool_call: Dict[str, Any], project: Project):
     """Callback die de UI van een specifiek project bijwerkt."""
     function_name = tool_call.get('function', {}).get('name')
     try:
@@ -18,8 +18,22 @@ def streamlit_tool_callback(tool_call: Dict[str, Any], project: "Project"):
     elif function_name == "update_scratchpad":
         project.scratchpad = args.get("tasks", [])
         
+def list_documents_callback(tool_result: Dict[str, Any], project):
+    """
+    Callback function for the list_selected_documents tool.
+    Returns the list of all selected documents (both agent-found and user-found).
+    """
 
-def streamlit_tool_result_callback(tool_result: Dict[str, Any], project: "Project") -> Optional[str]:
+    # Get all selected documents
+    all_documents = {
+        "agent_found": list(project.agent_found_documents.keys()),
+        "user_found": list(project.self_found_documents.keys())
+    }
+
+    # Return the result as a JSON string
+    return json.dumps(all_documents)       
+
+def streamlit_tool_result_callback(tool_result: Dict[str, Any], project: Project) -> Optional[str]:
     """Callback die de resultaten van een tool verwerkt voor een specifiek project."""
     function_name = tool_result.get("function_name")
 
@@ -33,4 +47,5 @@ def streamlit_tool_result_callback(tool_result: Dict[str, Any], project: "Projec
                 project.upsert_document(doc_id=doc_id)
         except (json.JSONDecodeError, AttributeError):
             pass
+    
     return None
