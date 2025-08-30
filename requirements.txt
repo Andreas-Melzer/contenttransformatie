@@ -15,4 +15,4 @@ streamlit-aggrid==1.1.7
 nicegui
 Whoosh-Reloaded
 tiktoken
-jsonextractor
+JsonExtractor

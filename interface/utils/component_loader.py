@@ -29,7 +29,7 @@ def load_heavy_components():
         settings.summary_indexed_metadata_keys
     )
     vector_store = VectorStore(embedder=embedder, doc_store=summary_doc_store)
-    return llm, doc_store, vector_store
+    return llm, doc_store,summary_doc_store, vector_store
 
 def initialize_agent_for_project(project: "Project", llm: LLMProcessor, vector_store: VectorStore) -> MultiTurnAgent:
     """Initialiseert en configureert de agent voor een specifiek project."""

@@ -2,22 +2,12 @@ import streamlit as st
 from interface.utils.component_loader import load_heavy_components
 from interface.utils.project_manager import get_active_project
 from interface.utils.ui_components import display_document_dashboard
+active_project =get_active_project()
+st.set_page_config(layout="wide", page_title="Zoeken en selecteren")
 
-# Pagina setup
-st.set_page_config(layout="wide")
 
-# Haal het actieve project op.
-active_project = get_active_project()
-if not active_project:
-    st.error("Selecteer alstublieft een project op het dashboard.")
-    if st.button("Ga naar Dashboard"):
-        st.switch_page("Project_Selectie.py")
-    st.stop()
+_, doc_store, summary_doc_store, _ = load_heavy_components()
 
-# Haal de zware componenten op (wordt gecached door streamlit)
-_, doc_store, _ = load_heavy_components()
-
-# De agent is al geïnitialiseerd en is onderdeel van het project object.
 agent = active_project.agent
 
 if 'selected_doc_ids' not in st.session_state:
@@ -61,10 +51,10 @@ st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 1: Zoeken en Selecteren van Documenten")
 st.subheader("Gevonden Documenten")
 
-if not active_project.shortlist:
+if not active_project.agent_found_documents:
     st.info("De agent heeft nog geen documenten gevonden. Stel een vraag in de chat om te beginnen.")
 else:
-    display_document_dashboard(doc_store, active_project)
+    display_document_dashboard(summary_doc_store, active_project,active_project.agent_found_documents)
 
 if agent and active_project.messages and active_project.messages[-1]["role"] == "user":
     with st.sidebar:

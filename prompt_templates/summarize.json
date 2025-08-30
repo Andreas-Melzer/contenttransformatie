@@ -12,20 +12,6 @@
       "description": "Bevat metadata over de samenvatting.",
       "type": "object",
       "properties": {
-        "extracted_question": {
-          "description": "Een array met de letterlijk overgenomen vraag en het bijbehorende antwoord.",
-          "type": "array",
-          "items": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "string"
-            }
-          ],
-          "minItems": 2,
-          "maxItems": 2
-        },
         "Tags": {
           "description": "Een lijst met relevante trefwoorden.",
           "type": "array",
@@ -35,7 +21,6 @@
         }
       },
       "required": [
-        "extracted_question",
         "Tags"
       ]
     }

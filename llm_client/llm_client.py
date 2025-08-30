@@ -6,9 +6,9 @@ import sys
 from typing import Callable, Optional, Dict, Any, List, Union
 from openai.types.chat import ChatCompletion
 from json_extractor import JsonExtractor
-from config.settings import settings
+from config.settings import Settings
+settings = Settings()
 
-dotenv.load_dotenv()
 
 def json_post_process(raw_output: str) -> Any:
     """Parses raw string output as JSON, handling markdown code blocks.

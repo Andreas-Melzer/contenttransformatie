@@ -48,6 +48,7 @@ class SimpleDocument(Document):
     """A basic, concrete implementation of the Document class."""
     pass
 
+#TODO add clear index method
 class DocumentStore:
     """Manages document storage, persistence, and indexed metadata searching."""
     def __init__(
@@ -161,6 +162,9 @@ class DocumentStore:
                 if doc := self.get(hit['doc_id']):
                     results.append(doc)
         return results
+    
+    def contains(self,id:str):
+        return id in self.documents
         
     def _load(self) -> Dict[str, Document]:
         """Loads the document dictionary from a pickle file.
@@ -198,35 +202,40 @@ def get_stable_id(doc_id: str) -> int:
     """Generates a stable 64-bit integer ID from a string."""
     return int(hashlib.sha256(doc_id.encode('utf-8')).hexdigest(), 16) & (2**63 - 1)
 
+
+def _batched(seq, size: int):
+    for i in range(0, len(seq), size):
+        yield seq[i:i + size]
+
 class VectorStore:
     """Manages vector embeddings and performs similarity searches using FAISS."""
-    def __init__(self, embedder: 'EmbeddingProcessor', doc_store: DocumentStore, data_root: str = "data"):
-        """Initializes the VectorStore.
-        
-        Manages vector embeddings and performs similarity searches using FAISS. It links
-        to a DocumentStore and an EmbeddingProcessor.
-        
-        :param embedder: EmbeddingProcessor, The processor used to generate text embeddings.
-        :param doc_store: DocumentStore, The store where the source documents are kept.
-        :param data_root: str, The root directory for storing the FAISS index and other data, defaults to "data"
-        """
+    def __init__(
+        self,
+        embedder: 'EmbeddingProcessor',
+        doc_store: DocumentStore,
+        data_root: str = "data",
+        *,
+        batch_size: int = 128,  
+        save_every: int = 1,      
+    ):
         self.embedder = embedder
         self.doc_store = doc_store
-        
+        self.batch_size = max(1, int(batch_size))
+        self.save_every = max(1, int(save_every))
+
         model_name = self.embedder.embedding_model.replace("/", "_")
         store_path = os.path.join(data_root, self.doc_store.source_name, model_name)
         os.makedirs(store_path, exist_ok=True)
-        
+
         self.index_file = os.path.join(store_path, "vectors.faiss")
         self.ids_file = os.path.join(store_path, "indexed_ids.pkl")
-        
+
         self.indexed_ids: set[int] = set()
-        
+
         self._load_or_initialize()
         self.sync_with_store()
 
     def _load_or_initialize(self):
-        """Loads an existing FAISS index from disk or initializes a new one if not found."""
         if os.path.exists(self.index_file) and os.path.exists(self.ids_file):
             self.index = faiss.read_index(self.index_file)
             with open(self.ids_file, 'rb') as f:
@@ -240,127 +249,127 @@ class VectorStore:
             print(f"Initialized new FAISS index with dimension {dim}.")
 
     def _save(self):
-        """Saves the current FAISS index and the set of indexed IDs to disk."""
         faiss.write_index(self.index, self.index_file)
         with open(self.ids_file, 'wb') as f:
             pickle.dump(self.indexed_ids, f)
         print(f"Saved FAISS index ({self.index.ntotal} vectors) and ID set.")
 
     def add(self, docs: Union[Document, List[Document]], refresh: bool = False):
-        """Adds or updates documents and their vector embeddings.
-        
-        This method first adds the document(s) to the underlying DocumentStore, then
-        creates embeddings for them and adds the vectors to the FAISS index.
-        
-        :param docs: Union[Document, List[Document]], The document or list of documents to add/update.
-        :param refresh: bool, If True, forces an update in the DocumentStore, defaults to False
-        """
         if not isinstance(docs, list):
             docs = [docs]
-            
+
+        # persist docs first
         self.doc_store.add(docs, refresh=refresh)
 
-        hashed_ids = np.array([get_stable_id(doc.id) for doc in docs])
-        
-        if self.index.ntotal > 0:
-            self.index.remove_ids(hashed_ids)
-            self.indexed_ids.difference_update(hashed_ids)
-        
-        content_to_embed = [doc.content_to_embed for doc in docs]
-        if not content_to_embed:
-            if self.index.ntotal > 0: self._save()
-            return
+        # remove existing vectors for these ids (if any)
+        hashed_ids_all = np.array([get_stable_id(doc.id) for doc in docs], dtype='int64')
+        if self.index.ntotal > 0 and len(hashed_ids_all):
+            self.index.remove_ids(hashed_ids_all)
+            self.indexed_ids.difference_update(hashed_ids_all.tolist())
 
-        embeddings = self.embedder.embed(content_to_embed)
-        embeddings_np = np.array(embeddings).astype('float32')
-        
-        self.index.add_with_ids(embeddings_np, hashed_ids)
-        self.indexed_ids.update(hashed_ids)
+        # embed + add in batches
+        batch_i = 0
+        for chunk in _batched(docs, self.batch_size):
+            contents = [d.content_to_embed for d in chunk]
+            if not contents:
+                continue
+
+            # Ensure list input → list-of-vectors out
+            embeddings = self.embedder.embed(contents)
+            emb_np = np.array(embeddings, dtype='float32')
+
+            ids_np = np.array([get_stable_id(d.id) for d in chunk], dtype='int64')
+            self.index.add_with_ids(emb_np, ids_np)
+            self.indexed_ids.update(ids_np.tolist())
+
+            batch_i += 1
+            if batch_i % self.save_every == 0:
+                self._save()
+
+        # final checkpoint
         self._save()
 
     def sync_with_store(self, refresh: bool = False):
-        """Ensures the vector index is in sync with the document store.
-        
-        In normal mode, it checks for and indexes any documents present in the
-        DocumentStore but not in the vector index. In refresh mode, it rebuilds
-        the entire vector index from scratch based on the DocumentStore.
-        
-        :param refresh: bool, If True, rebuilds the entire index. If False, only adds missing documents, defaults to False
-        """
         print("Syncing VectorStore with DocumentStore...")
         if refresh:
             print("Refresh mode enabled: Re-building the entire index from the DocumentStore.")
             all_docs = self.doc_store.get_all()
-            
+
             dummy_embedding = self.embedder.embed("test")
             dim = len(dummy_embedding)
             self.index = faiss.IndexIDMap(faiss.IndexFlatL2(dim))
             self.indexed_ids = set()
-            
+
             if not all_docs:
                 print("DocumentStore is empty. Index has been cleared.")
                 self._save()
                 print("Sync complete.")
                 return
-            
-            print(f"Re-indexing {len(all_docs)} documents...")
-            content_to_embed = [doc.content_to_embed for doc in all_docs]
-            embeddings = self.embedder.embed(content_to_embed)
-            embeddings_np = np.array(embeddings).astype('float32')
-            
-            hashed_ids = np.array([get_stable_id(doc.id) for doc in all_docs])
-            
-            self.index.add_with_ids(embeddings_np, hashed_ids)
-            self.indexed_ids.update(hashed_ids)
+
+            print(f"Re-indexing {len(all_docs)} documents (batch_size={self.batch_size})...")
+            batch_i = 0
+            for chunk in _batched(all_docs, self.batch_size):
+                contents = [d.content_to_embed for d in chunk]
+                if not contents:
+                    continue
+
+                embeddings = self.embedder.embed(contents)
+                emb_np = np.array(embeddings, dtype='float32')
+                ids_np = np.array([get_stable_id(d.id) for d in chunk], dtype='int64')
+
+                self.index.add_with_ids(emb_np, ids_np)
+                self.indexed_ids.update(ids_np.tolist())
+
+                batch_i += 1
+                if batch_i % self.save_every == 0:
+                    self._save()
         else:
             all_doc_ids = self.doc_store.get_all_ids()
             docs_to_index = []
             for doc_id in all_doc_ids:
-                hashed_id = get_stable_id(doc_id)
-                if hashed_id not in self.indexed_ids:
+                hid = get_stable_id(doc_id)
+                if hid not in self.indexed_ids:
                     doc = self.doc_store.get(doc_id)
                     if doc:
                         docs_to_index.append(doc)
-            
+
             if not docs_to_index:
                 print("VectorStore is already in sync. No new documents to add.")
                 return
-            
-            print(f"Found {len(docs_to_index)} documents missing from index. Adding them now...")
+
+            print(f"Found {len(docs_to_index)} missing documents. Indexing in batches of {self.batch_size}...")
+            # `add` is already batched and saves per batch
             self.add(docs_to_index, refresh=False)
+
         self._save()
         print("Sync complete.")
-
-    def query(self, query_text: str, n_results: int = 5) -> List[Dict]:
-        """Performs a semantic similarity search for a given query text.
-        
-        Embeds the query text and uses FAISS to find the most similar documents
-        based on vector distance.
-        
-        :param query_text: str, The text to search for.
-        :param n_results: int, The number of top matching documents to return, defaults to 5
-        :return: List[Dict], A list of dictionaries, each containing a 'document' and its 'distance' score.
+    
+    def query(self, query_text: str, n_results: int = 5):
+        """Semantic search via FAISS.
+        Returns: List[{'document': Document, 'distance': float}]
         """
-        query_embedding = self.embedder.embed(query_text)
-        query_np = np.array([query_embedding]).astype('float32')
-        
+        # Embed 1 query (robust voor single-string -> vector / list-of-vector)
+        q_emb = self.embedder.embed(query_text)
+        if isinstance(q_emb, list) and q_emb and isinstance(q_emb[0], (list, np.ndarray)):
+            q_emb = q_emb[0]
+        q_np = np.asarray([q_emb], dtype='float32')
+
         if self.index.ntotal == 0:
             return []
-            
-        distances, hashed_ids = self.index.search(query_np, min(n_results, self.index.ntotal))
-        
+
+        k = min(int(n_results), self.index.ntotal)
+        distances, hashed_ids = self.index.search(q_np, k)
+
+        # Map FAISS ids -> echte doc_ids
         all_doc_ids = self.doc_store.get_all_ids()
-        # --- HASHING FIX ---
-        hashed_id_map = {get_stable_id(doc_id): doc_id for doc_id in all_doc_ids}
+        id_map = {get_stable_id(doc_id): doc_id for doc_id in all_doc_ids}
 
         results = []
-        for i, hashed_id in enumerate(hashed_ids[0]):
-            doc_id = hashed_id_map.get(int(hashed_id)) # Cast to int for safety
-            if doc_id:
-                doc = self.doc_store.get(doc_id)
-                if doc:
-                    results.append({
-                        'document': doc,
-                        'distance': float(distances[0][i])
-                    })
+        for dist, hid in zip(distances[0], hashed_ids[0]):
+            doc_id = id_map.get(int(hid))
+            if not doc_id:
+                continue
+            doc = self.doc_store.get(doc_id)
+            if doc:
+                results.append({"document": doc, "distance": float(dist)})
         return results

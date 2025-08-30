@@ -64,12 +64,12 @@ class VectorSearchTool(ToolBase):
                     best_results[doc_id] = {
                         "id": doc_id,
                         "title": doc.title,
-                        "content_snippet": (doc.content[:500] + " ...") if doc.content else "",
-                        "metadata": {k: v for k, v in doc.metadata.items() if k != 'full_text'},
+                        "content_snippet": (doc.content[:2000] + " ...") if doc.content else "",
+                        "metadata": {k: v for k, v in doc.metadata.items() if k in ['BELASTINGSOORT', 'PROCES_ONDERWERP','PRODUCT_SUBONDERWERP', 'VRAAG']},
                         "distance": current_distance,
                         "query_number": query_index
                     }
-
+                    
         if not best_results:
             return "No documents found for any of the provided queries."
 
