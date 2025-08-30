@@ -33,7 +33,7 @@ def display_document_dashboard(doc_store, project: Project, document_dict : Dict
         return
 
     df = pd.DataFrame(docs_data)
-    display_kme_document_grid_with_selector(df,project)
+    display_kme_document_grid_with_selector(df, project, session_key="selected_docs")
 
     with col1:
         if st.button(f"Selectie Opslaan ({len(st.session_state.selected_docs)})", type="primary"):

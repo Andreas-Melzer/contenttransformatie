@@ -51,10 +51,13 @@ st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 1: Zoeken en Selecteren van Documenten")
 st.subheader("Gevonden Documenten")
 
-if not active_project.agent_found_documents:
-    st.info("De agent heeft nog geen documenten gevonden. Stel een vraag in de chat om te beginnen.")
+# Combine agent and user found documents
+all_found_documents = {**active_project.agent_found_documents, **active_project.self_found_documents}
+
+if not all_found_documents:
+    st.info("Er zijn nog geen documenten gevonden. Stel een vraag in de chat of gebruik 'Zelf zoeken' om te beginnen.")
 else:
-    display_document_dashboard(summary_doc_store, active_project,active_project.agent_found_documents)
+    display_document_dashboard(summary_doc_store, active_project, all_found_documents)
 
 if agent and active_project.messages and active_project.messages[-1]["role"] == "user":
     with st.sidebar:

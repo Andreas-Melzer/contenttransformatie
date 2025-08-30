@@ -6,7 +6,7 @@ from pandas import DataFrame
 
 
 
-def display_kme_document_grid_with_selector(df:DataFrame,project:Project):
+def display_kme_document_grid_with_selector(df:DataFrame, project:Project, session_key="selected_docs"):
     df['double_clicked_id'] = ''
 
     onCellDoubleClicked = JsCode("""
@@ -53,8 +53,8 @@ def display_kme_document_grid_with_selector(df:DataFrame,project:Project):
     if selected_rows is not None:
         selected_df = pd.DataFrame(selected_rows)
         if not selected_df.empty:
-            st.session_state.selected_docs = selected_df['km_nummer'].tolist()
+            st.session_state[session_key] = selected_df['km_nummer'].tolist()
         else:
-            st.session_state.selected_docs = []
+            st.session_state[session_key] = []
     else:
-        st.session_state.selected_docs = []
+        st.session_state[session_key] = []
