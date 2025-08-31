@@ -6,6 +6,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
 from interface.utils.project_manager import get_active_project
 from interface.utils.component_loader import load_heavy_components
 from interface.components.kme_document_viewer import display_kme_document
+from interface.components.kme_document_grid import display_kme_document_grid_with_selector
 from interface.project import Project
 active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Zelf zoeken")
@@ -124,7 +125,12 @@ def docs_to_rows(docs):
 
 def taxonomy_search(doc_store, belastingsoort: str, proces_onderwerp: str | None, product_subonderwerp: str | None, limit: int = 20, contains=True):
     q = build_taxonomy_query(belastingsoort, proces_onderwerp, product_subonderwerp, contains=contains)
-    results = doc_store.search(query_string=q, limit=limit) or []
+    results = doc_store.search(query_string=q, limit=limit)
+    # Handle case where results might be None or empty
+    if results is None:
+        results = []
+    elif hasattr(results, 'empty') and results.empty:
+        results = []
     return results, q
 
 st.title(f"Project: \"{active_project.vraag}\"")
@@ -188,69 +194,25 @@ with st.container():
 
 if rows:
     df = pd.DataFrame(rows)
-    if "double_clicked_id" not in df.columns:
-        df["double_clicked_id"] = ""
-
-    onRowDoubleClicked = JsCode("""
-        function(params) {
-            const docId = params.data.km_nummer;
-            params.node.setDataValue('double_clicked_id', docId);
-        }
-    """)
 
     st.subheader("Resultaten")
     c1, c2, _ = st.columns([1,1,6], vertical_alignment='top')
 
-    gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_selection('multiple', use_checkbox=True, rowMultiSelectWithClick=True, suppressRowClickSelection=False)
-    gb.configure_column("double_clicked_id", hide=True)
-    gb.configure_column("score", header_name="score", type=["numericColumn"], hide=False)
-    gb.configure_grid_options(onRowDoubleClicked=onRowDoubleClicked)
-
-    gridOptions = gb.build()
-
-    grid_response = AgGrid(
-        df,
-        gridOptions=gridOptions,
-        height=600,
-        width='100%',
-        data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
-        update_mode=GridUpdateMode.MODEL_CHANGED,             
-        fit_columns_on_grid_load=False,
-        show_toolbar=True,
-        show_search=True,
-        allow_unsafe_jscode=True,
-        enable_enterprise_modules=True,
-        show_download_button=True,
-        editable=False,
-        key='zelfzoeken_grid'
-    )
-
-    returned_df = grid_response.get('data')
-    if returned_df is not None and not returned_df.empty:
-        dc_rows = returned_df[returned_df['double_clicked_id'].astype(str).str.len() > 0]
-        if not dc_rows.empty:
-            dc_id = dc_rows['double_clicked_id'].iloc[0]
-            if dc_id and dc_id != st.session_state.zelfzoeken_last_click:
-                active_project.selected_doc_id = dc_id
-                st.session_state.zelfzoeken_last_click = dc_id  # anti retrigger
-
-    selected_rows = grid_response.get('selected_rows') or []
-    st.session_state.zelfzoeken_selected = [r.get('km_nummer') for r in selected_rows if r.get('km_nummer')]
+    # Use the KME document grid component
+    display_kme_document_grid_with_selector(df, active_project, session_key="zelfzoeken_selected_docs")
 
     with c1:
-        if st.button(f"Voeg selectie toe aan shortlist ({len(st.session_state.zelfzoeken_selected)})", type="primary", use_container_width=True):
-            # Voeg toe aan project.shortlist met dummy relevance
+        if st.button(f"Voeg selectie toe ({len(st.session_state.zelfzoeken_selected_docs)})", type="primary", use_container_width=True):
             cnt = 0
-            for doc_id in st.session_state.zelfzoeken_selected:
-                if doc_id and doc_id not in active_project.shortlist:
-                    active_project.shortlist[doc_id] = {"relevance": "..."}
+            for doc_id in st.session_state.zelfzoeken_selected_docs:
+                if doc_id and doc_id not in active_project.self_found_documents:
+                    active_project.self_found_documents[doc_id] = 0
                     cnt += 1
-            st.success(f"{cnt} documenten toegevoegd aan shortlist.")
+            st.success(f"{cnt} documenten toegevoegd aan selectie.")
 
     with c2:
         if st.button("Leeg selectie", use_container_width=True):
-            st.session_state.zelfzoeken_selected = []
+            st.session_state.zelfzoeken_selected_docs = []
             st.rerun()
 
     if getattr(active_project, "selected_doc_id", None):

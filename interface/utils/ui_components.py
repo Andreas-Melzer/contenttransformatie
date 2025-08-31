@@ -33,7 +33,7 @@ def display_document_dashboard(doc_store, project: Project, document_dict : Dict
         return
 
     df = pd.DataFrame(docs_data)
-    display_kme_document_grid_with_selector(df,project)
+    display_kme_document_grid_with_selector(df, project, session_key="selected_docs")
 
     with col1:
         if st.button(f"Selectie Opslaan ({len(st.session_state.selected_docs)})", type="primary"):
@@ -44,8 +44,11 @@ def display_document_dashboard(doc_store, project: Project, document_dict : Dict
     with col2:
         if st.button(f"Verwijder Selectie ({len(st.session_state.selected_docs)})"):
             for doc_id in st.session_state.selected_docs:
-                if doc_id in project.shortlist:
-                    del project.shortlist[doc_id]
+                # Remove from both agent and self found documents
+                if doc_id in project.agent_found_documents:
+                    del project.agent_found_documents[doc_id]
+                if doc_id in project.self_found_documents:
+                    del project.self_found_documents[doc_id]
             st.session_state.selected_docs = []
             st.rerun()
 

@@ -5,6 +5,7 @@ import dotenv
 import sys
 from typing import Callable, Optional, Dict, Any, List, Union
 from openai.types.chat import ChatCompletion
+
 from json_extractor import JsonExtractor
 from config.settings import Settings
 settings = Settings()

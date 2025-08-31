@@ -1,7 +1,7 @@
 import json
 from typing import Dict, Any, Optional, Callable, Union
-from .tool_base import ToolBase
-from ..document_vector_store import DocumentStore
+from llm_client.tools.tool_base import ToolBase
+from llm_client.document_vector_store import DocumentStore
 
 class DocumentSearchTool(ToolBase):
     """A tool for performing structured metadata searches on a DocumentStore."""

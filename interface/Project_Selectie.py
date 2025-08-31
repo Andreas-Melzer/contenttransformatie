@@ -1,10 +1,16 @@
-import streamlit as st
 import uuid
+
+import mlflow
+import pandas as pd
+import streamlit as st
+
+from interface.styles.custom_css import apply_custom_css
 from interface.utils.project_manager import create_project, get_all_projects
 from interface.utils.session_state import initialize_session_state
-from interface.styles.custom_css import apply_custom_css
-import pandas as pd
 
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
+mlflow.set_experiment("Contentcreatie")
+mlflow.openai.autolog()
 # Pagina Configuratie en Initialisatie
 logo_url = "https://www.belastingdienst.nl/bld-assets/bld/rhslogos/bld_logo.svg"
 st.set_page_config(

@@ -1,14 +1,32 @@
 import streamlit as st
+import json
 from interface.utils.component_loader import load_heavy_components
 from interface.utils.project_manager import get_active_project
 from interface.utils.ui_components import display_document_dashboard
 active_project =get_active_project()
 st.set_page_config(layout="wide", page_title="Zoeken en selecteren")
 
-
-_, doc_store, summary_doc_store, _ = load_heavy_components()
+_, doc_store, summary_doc_store, vector_store = load_heavy_components()
 
 agent = active_project.agent
+
+def handle_list_documents(tool_call, project):
+    """
+    Callback function for the list_selected_documents tool.
+    Returns the list of all selected documents (both agent-found and user-found).
+    """
+    # Get the function name and arguments
+    function_name = tool_call['function']['name']
+    args = json.loads(tool_call['function']['arguments'])
+
+    # Get all selected documents
+    all_documents = {
+        "agent_found": list(project.agent_found_documents.keys()),
+        "user_found": list(project.self_found_documents.keys())
+    }
+
+    # Return the result as a JSON string
+    return json.dumps(all_documents)
 
 if 'selected_doc_ids' not in st.session_state:
     st.session_state.selected_doc_ids = []
@@ -51,10 +69,13 @@ st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 1: Zoeken en Selecteren van Documenten")
 st.subheader("Gevonden Documenten")
 
-if not active_project.agent_found_documents:
-    st.info("De agent heeft nog geen documenten gevonden. Stel een vraag in de chat om te beginnen.")
+# Combine agent and user found documents
+all_found_documents = {**active_project.agent_found_documents, **active_project.self_found_documents}
+
+if not all_found_documents:
+    st.info("Er zijn nog geen documenten gevonden. Stel een vraag in de chat of gebruik 'Zelf zoeken' om te beginnen.")
 else:
-    display_document_dashboard(summary_doc_store, active_project,active_project.agent_found_documents)
+    display_document_dashboard(summary_doc_store, active_project, all_found_documents)
 
 if agent and active_project.messages and active_project.messages[-1]["role"] == "user":
     with st.sidebar:
