@@ -31,7 +31,6 @@ class PromptBuilder:
             self.schema = None
             self.schema_str = ""
 
-        # --- User Template and Variables ---
         try:
             user_source = self.env.loader.get_source(self.env, f"{self.name}.j2")[0]
         except TemplateNotFound:
@@ -41,7 +40,6 @@ class PromptBuilder:
         user_ast = self.env.parse(user_source)
         self.user_vars = find_undeclared_variables(user_ast)
 
-        # --- System Template and Variables ---
         try:
             system_source = self.env.loader.get_source(self.env, f"{self.name}_system.j2")[0]
             self.system_template = self.env.from_string(system_source)

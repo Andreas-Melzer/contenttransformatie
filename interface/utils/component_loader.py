@@ -1,16 +1,22 @@
-import streamlit as st
-from config.settings import settings
-from llm_client.llm_client import LLMProcessor, EmbeddingProcessor
-from llm_client.document_vector_store import DocumentStore, VectorStore
-from llm_client.agent import MultiTurnAgent
-from llm_client.prompt_builder import PromptBuilder
-from llm_client.tools.vector_search_tool import VectorSearchTool
-from llm_client.tools.document_shortlist_tool import DocumentShortlistTool
-from llm_client.tools.list_selected_documents_tool import ListSelectedDocumentsTool
-from llm_client.tools.read_documents_tool import ReadDocumentsTool
-from interface.utils.callbacks import streamlit_tool_callback, streamlit_tool_result_callback, list_documents_callback
-from project import Project
 import json
+
+import streamlit as st
+from interface.project import Project
+
+from config.settings import settings
+from interface.utils.callbacks import (list_documents_callback,
+                                       streamlit_tool_callback,
+                                       streamlit_tool_result_callback)
+from llm_client.agent import MultiTurnAgent
+from llm_client.document_vector_store import DocumentStore, VectorStore
+from llm_client.llm_client import EmbeddingProcessor, LLMProcessor
+from llm_client.prompt_builder import PromptBuilder
+from implementations.tools.document_shortlist_tool import DocumentShortlistTool
+from implementations.tools.list_selected_documents_tool import \
+    ListSelectedDocumentsTool
+from implementations.tools.read_documents_tool import ReadDocumentsTool
+from implementations.tools.vector_search_tool import VectorSearchTool
+
 
 @st.cache_resource
 def load_heavy_components():

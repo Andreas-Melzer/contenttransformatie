@@ -1,6 +1,6 @@
 import json
 from typing import Dict, Any, List, Optional, Callable, Union
-from .tool_base import ToolBase
+from llm_client.tools.tool_base import ToolBase
 
 class DocumentShortlistTool(ToolBase):
     """

@@ -1,22 +1,20 @@
-import os
+import hashlib
 import json
-from typing import List, Optional
-from .llm_client import EmbeddingProcessor
-from dataclasses import dataclass
-from typing import Dict, Any
-import pickle
-from abc import ABC
-from typing import Dict, Any, List, Optional
-import numpy as np
-import faiss
 import os
-import hashlib 
 import pickle
-from typing import List, Dict, Optional, Union
-from whoosh.index import create_in, open_dir, exists_in
-from whoosh.fields import Schema, ID, TEXT
-from whoosh.qparser import MultifieldParser, QueryParser
 import shutil
+from abc import ABC
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Union
+
+import faiss
+import numpy as np
+from whoosh.fields import ID, TEXT, Schema
+from whoosh.index import create_in, exists_in, open_dir
+from whoosh.qparser import MultifieldParser, QueryParser
+
+from .llm_client import EmbeddingProcessor
+
 
 @dataclass
 class Document(ABC):
