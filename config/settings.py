@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -22,6 +21,7 @@ class Settings(BaseSettings):
     # --- Path Settings ---
     base_dir: Path = Path(__file__).resolve().parent
     data_root: Path = base_dir / "data"
+    projects_data_root: Path = base_dir / ".." / "projects"
     content_folder: Path = base_dir / ".." / "content"
 
     # --- Client Configurations (as dictionaries) ---

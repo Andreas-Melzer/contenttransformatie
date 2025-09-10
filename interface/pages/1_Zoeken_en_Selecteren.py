@@ -2,7 +2,7 @@ import streamlit as st
 import json
 from interface.utils.component_loader import load_heavy_components
 from interface.utils.project_manager import get_active_project
-from interface.utils.ui_components import display_document_dashboard
+from interface.utils.ui_components import display_agent_search_results
 active_project =get_active_project()
 st.set_page_config(layout="wide", page_title="Zoeken en selecteren")
 
@@ -49,7 +49,8 @@ with st.sidebar:
                     st.markdown(message["content"])
 
     if prompt := st.chat_input("Stel uw vraag..."):
-        active_project.messages.append({"role": "user", "content": prompt})
+        # Re-assign the list to trigger the property setter
+        active_project.messages = active_project.messages + [{"role": "user", "content": prompt}]
         active_project.selected_doc_id = None
         st.session_state.selected_doc_ids = []
         st.rerun()
@@ -75,7 +76,7 @@ all_found_documents = {**active_project.agent_found_documents, **active_project.
 if not all_found_documents:
     st.info("Er zijn nog geen documenten gevonden. Stel een vraag in de chat of gebruik 'Zelf zoeken' om te beginnen.")
 else:
-    display_document_dashboard(summary_doc_store, active_project, all_found_documents)
+    display_agent_search_results(summary_doc_store, active_project, all_found_documents)
 
 if agent and active_project.messages and active_project.messages[-1]["role"] == "user":
     with st.sidebar:
@@ -86,7 +87,8 @@ if agent and active_project.messages and active_project.messages[-1]["role"] == 
                 agent.scratchpad = active_project.scratchpad
                 query = active_project.messages[-1]["content"]
                 final_response = agent.chat(query=query, max_tool_turns=15)
-                active_project.messages.append({"role": "assistant", "content": final_response})
+                # Re-assign to save
+                active_project.messages = agent.messages + [{"role": "assistant", "content": final_response}]
                 # Synchroniseer terug
                 active_project.scratchpad = agent.scratchpad
     st.session_state.selected_doc_ids = []

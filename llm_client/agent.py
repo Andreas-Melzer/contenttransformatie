@@ -71,10 +71,10 @@ class MultiTurnAgent:
             result = self.llm_processor.process(history_with_scratchpad, tools=self.tool_schemas, tool_choice="auto")
             self.response_history.append(result)
             if not result.thinking:
-                self.messages.append(dict(result.message))
+                self.messages.append(result.message)
                 return result.raw_content or "I could not generate a response."
 
-            self.messages.append(dict(result.message))
+            self.messages.append(result.message)
 
             for tool_call in result.thinking:
                 function_name = tool_call['function']['name']

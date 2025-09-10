@@ -9,7 +9,7 @@ from pandas import DataFrame
 
 
 
-def display_document_dashboard(doc_store, project: Project, document_dict : Dict[str,int]):
+def display_agent_search_results(doc_store, project: Project, document_dict : Dict[str,int]):
     """Rendert de documententabel met AG Grid voor een interactieve ervaring."""
     col1, col2, _ , _, _ = st.columns(5,vertical_alignment='top')
     

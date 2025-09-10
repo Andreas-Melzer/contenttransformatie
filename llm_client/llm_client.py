@@ -93,14 +93,30 @@ class LLMResult:
         self._processor = processor
 
     @property
-    def message(self):
-        """Gets the primary message object from the response."""
-        return self.api_response.choices[0].message
+    def message(self) -> Dict[str, Any]:
+        """Gets the primary message object from the response and converts it to a dictionary."""
+        message = self.api_response.choices[0].message
+        message_dict = {
+            "role": message.role,
+            "content": message.content,
+        }
+        if message.tool_calls:
+            message_dict["tool_calls"] = [
+                {
+                    "id": tool.id,
+                    "type": tool.type,
+                    "function": {
+                        "name": tool.function.name,
+                        "arguments": tool.function.arguments
+                    }
+                } for tool in message.tool_calls
+            ]
+        return message_dict
 
     @property
     def raw_content(self) -> Optional[str]:
         """Gets the original, unprocessed string content from the response."""
-        return self.message.content
+        return self.api_response.choices[0].message.content
 
     @property
     def content(self) -> Any:
@@ -112,7 +128,8 @@ class LLMResult:
     @property
     def thinking(self) -> Optional[List[Dict[str, Any]]]:
         """Extracts tool calls made by the model, if any."""
-        if not self.message.tool_calls:
+        message = self.api_response.choices[0].message
+        if not message.tool_calls:
             return None
         return [
             {
@@ -120,13 +137,13 @@ class LLMResult:
                 "type": tool.type,
                 "function": {"name": tool.function.name, "arguments": tool.function.arguments},
             }
-            for tool in self.message.tool_calls
+            for tool in message.tool_calls
         ]
 
     @property
     def usage(self) -> Dict[str, int]:
-        """Gets token usage statistics for the request."""
-        return dict(self.api_response.usage) if self.api_response.usage else {}
+            """Gets token usage statistics for the request."""
+            return dict(self.api_response.usage) if self.api_response.usage else {}
 
 REASONING_MODELS = ["gpt-5-mini", "gpt-5"]
 

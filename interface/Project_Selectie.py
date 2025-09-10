@@ -47,7 +47,7 @@ else:
         project_list.append({
             "project_id": project.id,
             "vraag": project.vraag,
-            "documenten": len(project.found_documents if project.found_documents else [])
+            "documenten": len(project.agent_found_documents if project.agent_found_documents else [])
         })
 
     df = pd.DataFrame(project_list)
