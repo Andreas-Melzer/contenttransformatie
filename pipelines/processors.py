@@ -25,7 +25,7 @@ def add_new_documents_to_docstore(
     Retourneert (aantal_toegevoegd, ontbrekende_kme_ids)
     """
     table = kme_table if kme_table is not None else KME_TABLE
-    new_rows = check_for_new_content(kme_documents, doc_store)  # bugfix: doc_store doorgeven
+    new_rows = check_for_new_content(kme_documents, doc_store) 
 
     docs: List[Document] = []
     missing: List[str] = []
@@ -41,10 +41,10 @@ def add_new_documents_to_docstore(
                 "private_answer": row.private_answer_text,
                 "public_answer_html": row.publicAnswer_html,
                 "public_answer": row.publicAnswer_text,
-                "BELASTINGSOORT": tax["BELASTINGSOORT"],
-                "PROCES_ONDERWERP": tax["PROCES_ONDERWERP"],
-                "PRODUCT_SUBONDERWERP": tax["PRODUCT_SUBONDERWERP"],
-                "VRAAG": tax["VRAAG"],
+                "BELASTINGSOORT": row.BELASTINGSOORT,
+                "PROCES_ONDERWERP": row.PROCES_ONDERWERP,
+                "PRODUCT_SUBONDERWERP": row.PRODUCT_SUBONDERWERP,
+                "VRAAG": tax.VRAAG,
             }
             docs.append(Document(km_id, row.title, row.full_text, metadata))
         else:

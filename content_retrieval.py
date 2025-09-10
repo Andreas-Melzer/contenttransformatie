@@ -5,14 +5,32 @@ from llm_client.document_vector_store import (
     SimpleDocument
 )
 from kme_doc import KMEDocument
+from config.settings import settings
 
-        
+# Get client configurations from settings
+llm_client_config = settings.clients.get(settings.llm_client_map.get("gpt-oss-120b"))
+embed_client_config = settings.clients.get(settings.embedding_client_map.get(settings.embedding_model))
 
-llm = llm_client.LLMProcessor(model= "gpt-oss-120b",default_post_process=llm_client.json_decode)
-embed = llm_client.EmbeddingProcessor(embedding_model='text-embedding-3-large')
-doc_store = DocumentStore("kme_content",'/home/azureuser/cloudfiles/code/Users/a.melzer/contentcreatie/data',indexed_metadata_keys=["BELASTINGSOORT","PROCES_ONDERWERP","PRODUCT_SUBONDERWERP",'km_number'])
-summary_doc_store = DocumentStore("kme_content_summarized",'/home/azureuser/cloudfiles/code/Users/a.melzer/contentcreatie/data',indexed_metadata_keys=["title","BELASTINGSOORT","PROCES_ONDERWERP","PRODUCT_SUBONDERWERP",'Tags','km_number'])
-embedding = VectorStore(embedder=embed,doc_store=summary_doc_store)
+llm = llm_client.LLMProcessor(
+    model="gpt-oss-120b",
+    client_config=llm_client_config,
+    default_post_process=llm_client.json_decode
+)
+embed = llm_client.EmbeddingProcessor(
+    embedding_model='text-embedding-3-large',
+    client_config=embed_client_config
+)
+doc_store = DocumentStore(
+    "kme_content",
+    settings.data_root,
+    indexed_metadata_keys=settings.indexed_metadata_keys
+)
+summary_doc_store = DocumentStore(
+    "kme_content_summarized",
+    settings.data_root,
+    indexed_metadata_keys=settings.summary_indexed_metadata_keys
+)
+embedding = VectorStore(embedder=embed, doc_store=summary_doc_store)
 
-def query_document(text:str):
-    return embedding.query(text,n_results=10)
+def query_document(text: str):
+    return embedding.query(text, n_results=10)

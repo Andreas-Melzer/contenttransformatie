@@ -1,19 +1,13 @@
-import os
 import json
 import openai
-import dotenv
 import sys
 from typing import Callable, Optional, Dict, Any, List, Union
 from openai.types.chat import ChatCompletion
-
 from json_extractor import JsonExtractor
-from config.settings import Settings
-settings = Settings()
-
 
 def json_post_process(raw_output: str) -> Any:
-    """Parses raw string output as JSON, handling markdown code blocks.
-
+    """
+    Parses raw string output as JSON, handling markdown code blocks.
     :param raw_output: str, The raw string output from the language model.
     :return: Any, A dictionary if parsing succeeds, the original input if not a string, or None on parsing failure.
     """
@@ -31,97 +25,93 @@ def json_post_process(raw_output: str) -> Any:
     except json.JSONDecodeError:
         print("Warning: Failed to decode LLM output as JSON.", file=sys.stderr)
         return None
-    
+
 def json_decode(raw_output:str) -> Any:
-    obj = JsonExtractor.extract_valid_json(raw_output)
-    return obj
+    """
+    Extracts a valid JSON object from a raw string.
+    :param raw_output: str, The raw string that may contain a JSON object.
+    :return: Any, The extracted JSON object or None if not found.
+    """
+    return JsonExtractor.extract_valid_json(raw_output)
 
-class _BaseClient:
-    """A base class to handle shared API client initialization."""
-    def __init__(self):
-        """Initializes clients based on the global settings object."""
-        self.clients: Dict[str, openai.OpenAI] = {}
-        for name, client_config in settings.clients.items():
-            if name.startswith("azure"):
-                if client_config.api_key and client_config.azure_endpoint:
-                    self.clients[name] = openai.AzureOpenAI(
-                        api_key=client_config.api_key,
-                        api_version=client_config.api_version,
-                        azure_endpoint=client_config.azure_endpoint
-                    )
-                else:
-                    print(f"Warning: Missing API key or endpoint for '{name}'. Client disabled.", file=sys.stderr)
-            elif name == "openrouter":
-                if client_config.api_key:
-                    self.clients[name] = openai.OpenAI(
-                        base_url=client_config.base_url,
-                        api_key=client_config.api_key
-                    )
-                else:
-                    print(f"Warning: Missing API key for '{name}'. Client disabled.", file=sys.stderr)
-            elif name == "local":
-                 self.clients[name] = openai.OpenAI(
-                    base_url=client_config.base_url,
-                    api_key=client_config.api_key
-                )
+CLIENT_FACTORY = {
+    "azure": {
+        "class": openai.AzureOpenAI,
+        "required_keys": {"api_key", "azure_endpoint", "api_version"},
+    },
+    "openrouter": {
+        "class": openai.OpenAI,
+        "required_keys": {"api_key", "base_url"},
+    },
+    "local": {
+        "class": openai.OpenAI,
+        "required_keys": {"api_key", "base_url"},
+    },
+    # Add a default for standard openai if needed
+    "openai": {
+        "class": openai.OpenAI,
+        "required_keys": {"api_key", "base_url"},
+    },
+}
 
+class _BaseProcessor:
+    """A base class to handle shared client creation logic."""
 
-    def _get_client(self, client_name: str) -> openai.OpenAI:
-        """Retrieves an initialized OpenAI client by name.
-
-        :param client_name: str, The name of the client to retrieve.
-        :raises ValueError: If the client name is not found.
-        :return: openai.OpenAI, The requested OpenAI client instance.
+    def _create_client(self, client_config: Dict[str, Any]) -> openai.OpenAI:
         """
-        client = self.clients.get(client_name)
-        if not client:
-            raise ValueError(f"Client '{client_name}' not found or not configured. Available clients: {list(self.clients.keys())}")
-        return client
+        Creates an OpenAI client from a configuration dictionary using a factory pattern.
+        :param client_config: Dict[str, Any], Configuration containing a 'type' key and other credentials.
+        :return: openai.OpenAI, An initialized OpenAI client.
+        :raises ValueError: If the configuration is invalid or the type is unsupported.
+        """
+        client_type = client_config.get("type", "openai")
+
+        factory_config = CLIENT_FACTORY.get(client_type)
+        if not factory_config:
+            raise ValueError(f"Unsupported client type: '{client_type}'. Supported: {list(CLIENT_FACTORY.keys())}")
+
+        required_keys = factory_config["required_keys"]
+        if not required_keys.issubset(client_config.keys()):
+            missing_keys = required_keys - client_config.keys()
+            raise ValueError(f"{client_type} config is missing required keys: {', '.join(missing_keys)}")
+
+        constructor_args = {key: client_config[key] for key in required_keys}
+        
+        ClientClass = factory_config["class"]
+        return ClientClass(**constructor_args)
+
 
 class LLMResult:
     """A smart wrapper for OpenAI ChatCompletion responses that auto-processes content."""
     def __init__(self, response: ChatCompletion, processor: Optional[Callable[[str], Any]] = None):
-        """Initializes the result object.
-
+        """
+        Initializes the result object.
         :param response: ChatCompletion, The ChatCompletion object from the openai client.
         :param processor: Optional[Callable[[str], Any]], An optional callable to apply to the raw content, defaults to None.
-        :return: None,
         """
         self.api_response = response
         self._processor = processor
 
     @property
     def message(self):
-        """Gets the primary message object from the response.
-
-        :return: openai.types.chat.chat_completion_message.ChatCompletionMessage, The first message object from the response choices.
-        """
+        """Gets the primary message object from the response."""
         return self.api_response.choices[0].message
 
     @property
     def raw_content(self) -> Optional[str]:
-        """Gets the original, unprocessed string content from the response.
-
-        :return: Optional[str], The raw string content of the message.
-        """
+        """Gets the original, unprocessed string content from the response."""
         return self.message.content
 
     @property
     def content(self) -> Any:
-        """Gets the processed content, applying a processor if available.
-
-        :return: Any, The processed content, or raw content if no processor is set.
-        """
+        """Gets the processed content, applying a processor if available."""
         if self._processor and self.raw_content is not None:
             return self._processor(self.raw_content)
         return self.raw_content
 
     @property
     def thinking(self) -> Optional[List[Dict[str, Any]]]:
-        """Extracts tool calls made by the model, if any.
-
-        :return: Optional[List[Dict[str, Any]]], A list of tool calls or None if there are none.
-        """
+        """Extracts tool calls made by the model, if any."""
         if not self.message.tool_calls:
             return None
         return [
@@ -135,60 +125,49 @@ class LLMResult:
 
     @property
     def usage(self) -> Dict[str, int]:
-        """Gets token usage statistics for the request.
-
-        :return: Dict[str, int], A dictionary with token usage stats.
-        """
+        """Gets token usage statistics for the request."""
         return dict(self.api_response.usage) if self.api_response.usage else {}
 
-REASONING_MODELS = [
- "gpt-5-mini",
- "gpt-5"   
-]
-class LLMProcessor(_BaseClient):
+REASONING_MODELS = ["gpt-5-mini", "gpt-5"]
+
+class LLMProcessor(_BaseProcessor):
     """A client for making Chat Completion API requests and returning structured results."""
     def __init__(
         self,
-        model: str = settings.llm_model,
+        model: str,
+        client_config: Dict[str, Any],
         system_prompt: Optional[str] = None,
         default_post_process: Optional[Callable[[str], Any]] = None,
-        temperature=1,
-        **kwargs
+        temperature: float = 1.0,
     ):
-        """Initializes the LLMProcessor.
-
-        :param model: str, The default model to use for completions, defaults to 'LLM'.
-        :param client_name: str, The default client to use ('local' or 'openrouter'), defaults to 'local'.
-        :param system_prompt: Optional[str], An optional default system prompt, defaults to None.
-        :param default_post_process: Optional[Callable[[str], Any]], A default processor for all results, defaults to None.
-        :param kwargs: Any, Additional keyword arguments passed to the _BaseClient.
-        :return: None,
         """
-        super().__init__(**kwargs)
+        Initializes the LLMProcessor.
+        :param model: str, The model name to use for completions.
+        :param client_config: Dict[str, Any], The configuration for the OpenAI client.
+        :param system_prompt: Optional[str], An optional default system prompt.
+        :param default_post_process: Optional[Callable[[str], Any]], A default processor for all results.
+        :param temperature: float, The sampling temperature to use.
+        """
         self.model = model
-        self.client_name = settings.llm_client_map.get(model)
-        if not self.client_name:
-            raise ValueError(f"Model '{model}' not found in llm_client_map in settings.")
         self.system_prompt = system_prompt
         self.default_post_process = default_post_process
-        self._client = self._get_client(self.client_name)
         self.temperature = temperature
+        self._client = self._create_client(client_config)
 
     def process(
         self,
         messages: List[Dict[str, Any]],
         post_process: Optional[Callable[[str], Any]] = None,
         max_completion_tokens: Optional[int] = None,
-        reasoning_effort : Optional[str] = "low",
+        reasoning_effort: Optional[str] = "low",
         **kwargs: Any
     ) -> LLMResult:
-        """Sends a request to the model and returns a wrapped LLMResult.
-
-        :param messages: List[Dict[str, Any]], A list of messages conforming to the OpenAI API structure.
-        :param post_process: Optional[Callable[[str], Any]], A processor for this response, overriding the instance default, defaults to None.
-        :param max_completion_tokens: Optional[int], The maximum number of tokens to generate, defaults to None.
-        :param reasoning_effort: Optional[str] any of "minimal","low","medium","high"
-        :param kwargs: Any, Other OpenAI chat completion parameters (e.g., temperature).
+        """
+        Sends a request to the model and returns a wrapped LLMResult.
+        :param messages: List[Dict[str, Any]], A list of messages for the API.
+        :param post_process: Optional[Callable[[str], Any]], A processor for this response.
+        :param max_completion_tokens: Optional[int], The maximum number of tokens to generate.
+        :param reasoning_effort: Optional[str], Reasoning effort for capable models.
         :return: LLMResult, An LLMResult object wrapping the API response.
         """
         processor_to_use = post_process if post_process is not None else self.default_post_process
@@ -210,40 +189,32 @@ class LLMProcessor(_BaseClient):
             request_params["max_tokens"] = max_completion_tokens
     
         completion = self._client.chat.completions.create(**request_params)
-
         return LLMResult(response=completion, processor=processor_to_use)
 
-class EmbeddingProcessor(_BaseClient):
-    """A client for generating embeddings from various providers."""
+class EmbeddingProcessor(_BaseProcessor):
+    """A client for generating embeddings."""
     def __init__(
         self,
-        embedding_model: str = settings.embedding_model,
-        **kwargs: Any
+        embedding_model: str,
+        client_config: Dict[str, Any],
     ):
-        """Initializes the EmbeddingProcessor.
-
-        :param embedding_model: str, The default embedding model to use, defaults to "text-embedding-3-small".
-        :param client_name: str, The client to use ('azure', 'openrouter', 'local'), defaults to 'azure'.
-        :param kwargs: Any, Additional keyword arguments passed to the _BaseClient.
-        :return: None,
         """
-        super().__init__(**kwargs)
+        Initializes the EmbeddingProcessor.
+        :param embedding_model: str, The embedding model to use.
+        :param client_config: Dict[str, Any], The configuration for the OpenAI client.
+        """
         self.embedding_model = embedding_model
-        self.client_name = settings.embedding_client_map.get(embedding_model)
-        if not self.client_name:
-            raise ValueError(f"Embedding model '{embedding_model}' not found in embedding_client_map in settings.")
-        self._client = self._get_client(self.client_name)
+        self._client = self._create_client(client_config)
 
     def embed(
         self,
         texts: Union[str, List[str]],
         **kwargs: Any
     ) -> Union[List[float], List[List[float]]]:
-        """Generates embeddings for the given text(s).
-
+        """
+        Generates embeddings for the given text(s).
         :param texts: Union[str, List[str]], A single string or a list of strings to embed.
-        :param kwargs: Any, Other OpenAI embedding parameters (e.g., dimensions).
-        :return: Union[List[float], List[List[float]]], A single embedding vector if the input was a string, or a list of vectors if the input was a list of strings.
+        :return: Union[List[float], List[List[float]]], An embedding vector or a list of vectors.
         """
         is_single_string = isinstance(texts, str)
         input_texts = [texts] if is_single_string else texts
@@ -258,8 +229,4 @@ class EmbeddingProcessor(_BaseClient):
         )
 
         embeddings = [item.embedding for item in response.data]
-
-        if is_single_string:
-            return embeddings[0]
-        else:
-            return embeddings
+        return embeddings[0] if is_single_string else embeddings

@@ -1,29 +1,16 @@
+
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-class ClientSettings(BaseModel):
-    """
-    Configuration for a single API client.
-
-    :param api_key: Optional[str], The API key for the client, defaults to None
-    :param api_version: Optional[str], The API version string, defaults to "2025-03-01-preview"
-    :param azure_endpoint: Optional[str], The endpoint URL for Azure clients, defaults to None
-    :param base_url: Optional[str], The base URL for the API endpoint, defaults to None
-    """
-    api_key: Optional[str] = None
-    api_version: Optional[str] = "2025-03-01-preview"
-    azure_endpoint: Optional[str] = None
-    base_url: Optional[str] = None
 
 
 class Settings(BaseSettings):
     """
     Main application settings, loaded from an .env file and environment variables.
+    Client configurations are stored as plain dictionaries for flexibility.
     """
     # --- Environment Variable Placeholders ---
     azure_api_key: Optional[str] = Field(None, validation_alias="AZURE_OPENAI_API_KEY")
@@ -37,8 +24,8 @@ class Settings(BaseSettings):
     data_root: Path = base_dir / "data"
     content_folder: Path = base_dir / ".." / "content"
 
-    # --- Client Configurations ---
-    clients: Dict[str, ClientSettings] = Field(default_factory=dict, exclude=True)
+    # --- Client Configurations (as dictionaries) ---
+    clients: Dict[str, Dict[str, Any]] = Field(default_factory=dict, exclude=True)
 
     # --- Model to Client Mapping ---
     llm_client_map: Dict[str, str] = {
@@ -52,11 +39,13 @@ class Settings(BaseSettings):
     }
     embedding_client_map: Dict[str, str] = {
         "text-embedding-3-large": "azure",
+        "text-embedding-qwen3-embedding-4b" :"local",
+        
     }
 
     # --- Default Model Selection ---
     llm_model: str = "gpt-5-mini"
-    embedding_model: str = "text-embedding-3-large"
+    embedding_model: str = "text-embedding-qwen3-embedding-4b"
 
     # --- Document Store Settings ---
     raw_doc_store_name: str = "kme_content"
@@ -75,26 +64,33 @@ class Settings(BaseSettings):
     def build_clients_dictionary(self) -> 'Settings':
         """
         Constructs the `clients` dictionary from the loaded environment variables.
-        :return: Settings, The validated and updated settings instance.
         """
         self.clients = {
-            "azure": ClientSettings(
-                api_key=self.azure_api_key,
-                azure_endpoint=self.azure_endpoint
-            ),
-            "azure_eus2": ClientSettings(
-                api_key=self.azure_eus2_api_key,
-                azure_endpoint=self.azure_eus2_endpoint
-            ),
-            "openrouter": ClientSettings(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=self.openrouter_api_key
-            ),
-            "local": ClientSettings(
-                base_url="http://127.0.0.1:1234/v1",
-                api_key="not_required"
-            )
+            "azure": {
+                "type": "azure",
+                "api_key": self.azure_api_key,
+                "azure_endpoint": self.azure_endpoint,
+                "api_version": "2025-03-01-preview"
+            },
+            "azure_eus2": {
+                "type": "azure",
+                "api_key": self.azure_eus2_api_key,
+                "azure_endpoint": self.azure_eus2_endpoint,
+                "api_version": "2025-03-01-preview"
+            },
+            "openrouter": {
+                "type": "openrouter",
+                "base_url": "https://openrouter.ai/api/v1",
+                "api_key": self.openrouter_api_key
+            },
+            "local": {
+                "type": "local",
+                "base_url": "http://127.0.0.1:1234/v1",
+                "api_key": "not_required"
+            }
         }
+        # Filter out clients with missing essential keys (e.g., api_key)
+        self.clients = {name: config for name, config in self.clients.items() if config.get("api_key") or config.get("base_url")}
         return self
 
     # --- Pydantic Configuration ---
@@ -103,6 +99,5 @@ class Settings(BaseSettings):
         env_file_encoding='utf-8',
         extra="ignore"
     )
-
 
 settings = Settings()
