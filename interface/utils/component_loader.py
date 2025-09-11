@@ -49,7 +49,7 @@ def load_heavy_components():
         client_config=embedding_config_dict
     )
 
-    # --- Data Store Setup ---
+
     doc_store = DocumentStore(
         settings.raw_doc_store_name,
         settings.data_root,

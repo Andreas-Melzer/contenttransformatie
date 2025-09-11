@@ -23,7 +23,7 @@ def create_project(project_id: str, vraag: str):
     """Maakt een nieuw project aan, initialiseert de agent, slaat het op en voegt het toe aan de session state."""
     # Stap 1: Laad de zware, gedeelde componenten (gecached)
     llm, _, summary_doc_store,  vector_store = load_heavy_components()
-    project = Project(vraag, project_id)
+    project = Project(vraag,[], project_id)
     project.agent = initialize_agent_for_project(project, llm, vector_store,summary_doc_store)
     project.save() # Save the project to disk
     st.session_state.projects[project_id] = project
@@ -67,7 +67,6 @@ def load_all_projects():
         with open(settings.data_root / "project_list.json") as f:
             project_init_list = json.load(f)
             for project_init in project_init_list:
-                print(project_init)
                 if project_init['question'] not in existing_project_questions:
                     project = Project(project_id=str(uuid.uuid4()),
                                       vraag=project_init['question'],
