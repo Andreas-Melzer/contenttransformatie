@@ -3,7 +3,8 @@ from interface.project import Project
 from interface.utils.component_loader import load_heavy_components, initialize_agent_for_project
 import os
 import json
-from config.settings import settings
+from  config.settings import settings
+import uuid
 
 def load_project(project_id: str) -> Project | None:
     """Laadt een project uit een JSON-bestand."""
@@ -50,10 +51,27 @@ def load_all_projects():
     projects = {}
     if not os.path.exists(settings.projects_data_root):
         return projects
+    
+    existing_project_questions = set()
+    
     for filename in os.listdir(settings.projects_data_root):
         if filename.endswith(".json"):
             project_id = filename[:-5]
             project = load_project(project_id)
             if project:
                 projects[project_id] = project
+                existing_project_questions.add(project.vraag)
+                
+    if os.path.exists(settings.data_root / "project_list.json"):
+        print('loading project configurations from project_list')
+        with open(settings.data_root / "project_list.json") as f:
+            project_init_list = json.load(f)
+            for project_init in project_init_list:
+                print(project_init)
+                if project_init['question'] not in existing_project_questions:
+                    project = Project(project_id=str(uuid.uuid4()),
+                                      vraag=project_init['question'],
+                                      subvragen=project_init['sub_questions'])
+                    projects[project.id] = project
+                    project.save()
     return projects

@@ -4,15 +4,17 @@ import os
 import json
 from llm_client.agent import MultiTurnAgent
 from config.settings import settings
+from interface.utils.debounce import debounce
 
 class Project:
     """Encapsuleert alle data en logica voor een enkel contentcreatie-project."""
 
-    def __init__(self, vraag: str, project_id: Optional[str] = None):
+    def __init__(self, vraag: str, subvragen: Optional[List[str]], project_id: Optional[str] = None):
         self._id: str = project_id or str(uuid.uuid4())
         self._vraag: str = vraag
+        self._subvragen: List[str] = subvragen
         self._messages: List[Dict[str, Any]] = [
-            {"role": "assistant", "content": f"Oké, ik start het onderzoek voor de vraag: '{vraag}'. Laten we beginnen."}
+            {"role": "assistant", "content": f"Oké, ik start het onderzoek voor de vraag: '{vraag}' en subvragen {" ".join(subvragen)}. Laten we beginnen."}
         ]
         self._agent_found_documents: Dict[str, Any] = {}
         self._self_found_documents: Dict[str, Any] = {}
@@ -25,7 +27,8 @@ class Project:
         self._saved_selection_consolidate: List[str] = []
         self._validated: bool = False
         self.agent: Optional[MultiTurnAgent] = None  # Agent wordt extern geïnitialiseerd
-
+        
+    @debounce(0.5)
     def save(self):
         """Slaat de huidige staat van het project op in een JSON-bestand."""
         if not os.path.exists(settings.projects_data_root):
@@ -34,7 +37,6 @@ class Project:
         with open(project_path, "w") as f:
             json.dump(self.to_dict(), f, indent=4)
         print(f"saved project {self.vraag}")
-    # --- Properties for auto-saving ---
 
     @property
     def id(self) -> str:
@@ -56,7 +58,7 @@ class Project:
     @messages.setter
     def messages(self, value: List[Dict[str, Any]]):
         self._messages = value
-        #self.save()
+        self.save()
 
     @property
     def agent_found_documents(self) -> Dict[str, Any]:
@@ -83,7 +85,7 @@ class Project:
     @scratchpad.setter
     def scratchpad(self, value: List[Dict[str, Any]]):
         self._scratchpad = value
-        #self.save()
+        self.save()
         
     @property
     def saved_selection_consolidate(self) -> List[str]:
@@ -104,8 +106,17 @@ class Project:
         self.save()
 
     @property
+    def subvragen(self) -> Optional[List[str]]:
+        return self._subvragen
+    
+    @subvragen.setter
+    def subvragen(self,value: Optional[List[str]]) -> Optional[List[str]]:
+        self._subvragen = value
+        self.save()
+        
+    @property
     def found_documents(self):
-        return self._self_found_documents.update(self._agent_found_documents)
+        return {**self._self_found_documents, **self._agent_found_documents}
 
     def upsert_document(self, doc_id, relevance: int = 0):
         if doc_id:
@@ -117,13 +128,14 @@ class Project:
         return {
             "id": self._id,
             "vraag": self._vraag,
-            "messages": self._messages,
+            "subvragen" :self._subvragen,
+            #"messages": self._messages,
             "agent_found_documents": self._agent_found_documents,
             "self_found_documents": self._self_found_documents,
             "search_selected_documents": self._search_selected_documents,
             "selected_documents": self._selected_documents,
             "selected_doc_id": self._selected_doc_id,
-            "scratchpad": self._scratchpad,
+            #"scratchpad": self._scratchpad,
             "consolidated_content": self._consolidated_content,
             "rewritten_content": self._rewritten_content,
             "saved_selection_consolidate": self._saved_selection_consolidate,
@@ -133,7 +145,7 @@ class Project:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Project":
         """Creates a Project instance from a dictionary."""
-        project = cls(vraag=data["vraag"], project_id=data["id"])
+        project = cls(vraag=data["vraag"], subvragen=data["subvragen"],project_id=data["id"])
         project._messages = data.get("messages", [])
         project._agent_found_documents = data.get("agent_found_documents", {})
         project._self_found_documents = data.get("self_found_documents", {})

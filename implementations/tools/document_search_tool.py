@@ -47,7 +47,7 @@ class DocumentSearchTool(ToolBase):
         simplified_results = [{
             "id": doc.id,
             "title": doc.title,
-            "content_snippet" : doc.content[0:250] + " .....",
+            "content_snippet" : doc.content[0:6000] + " .....",
             "metadata": {k:v for k,v in doc.metadata.items() if k != 'full_text'}
         } for doc in results]
 

@@ -139,7 +139,7 @@ class TaxnomySearchTool(ToolBase):
         items = [{
             "id": doc.id,
             "title": doc.title,
-            "content_snippet": (doc.content[:2000] + " ...") if doc.content else "",
+            "content_snippet": (doc.content[:6000] + " ...") if doc.content else "",
             "metadata": {k: v for k, v in (doc.metadata or {}).items() if k in ['BELASTINGSOORT', 'PROCES_ONDERWERP','PRODUCT_SUBONDERWERP', 'VRAAG']} 
         } for doc in results]
 

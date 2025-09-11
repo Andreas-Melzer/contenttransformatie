@@ -14,3 +14,4 @@ data/kme_content_summarized/metadata_index/_MAIN_0.toc
 *.env
 *.xlsx
 content/*
+projects/*
