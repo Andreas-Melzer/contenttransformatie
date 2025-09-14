@@ -66,7 +66,7 @@ def load_all_projects():
 
     # Laad bestaande projecten door metadata-bestanden te lezen
     for filename in os.listdir(settings.projects_data_root):
-        if filename.endswith(".json") and not filename.endswith("_data.json"):
+        if filename.endswith(".json") and not filename.endswith("_data.json") and not filename.endswith("_search.json") and not filename.endswith("_consolidate.json") and not filename.endswith("_rewrite.json"):
             project_id = filename[:-5]
             try:
                 with open(os.path.join(settings.projects_data_root, filename), "r", encoding="utf-8") as f:

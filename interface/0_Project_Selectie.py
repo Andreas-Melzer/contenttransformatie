@@ -86,6 +86,5 @@ else:
         selected_row_index = selection['selection']['rows'][0]
         selected_project_id = filtered_df.iloc[selected_row_index]['project_id']
         st.session_state.active_project_id = selected_project_id
-        # The get_active_project function will handle loading the full project data
         st.switch_page("pages/1_Zoeken_en_Selecteren.py")
 

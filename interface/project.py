@@ -31,6 +31,10 @@ class Project:
         self._consolidate_messages: List[Dict[str, Any]] = []
         self._rewrite_messages: List[Dict[str, Any]] = []
         
+        # Attributes to store consolidated and rewritten text
+        self._consolidated_text: str = ""
+        self._rewritten_text: str = ""
+        
         # Non-persistent attributes
         self.agent: Optional[MultiTurnAgent] = None
         self.consolidate_agent: Optional[MultiTurnAgent] = None
@@ -39,6 +43,18 @@ class Project:
     def _get_path(self, suffix: str = "") -> str:
         """Constructs the file path for project files."""
         return os.path.join(settings.projects_data_root, f"{self.id}{suffix}.json")
+    
+    def _get_search_data_path(self) -> str:
+        """Constructs the file path for search step data."""
+        return self._get_path("_search")
+    
+    def _get_consolidate_data_path(self) -> str:
+        """Constructs the file path for consolidate step data."""
+        return self._get_path("_consolidate")
+    
+    def _get_rewrite_data_path(self) -> str:
+        """Constructs the file path for rewrite step data."""
+        return self._get_path("_rewrite")
 
     @debounce(0.5)
     def save(self):
@@ -50,9 +66,17 @@ class Project:
         with open(self._get_path(), "w", encoding="utf-8") as f:
             json.dump(self.to_metadata_dict(), f, indent=4)
             
-        # Save data file ({id}_data.json)
-        with open(self._get_path("_data"), "w", encoding="utf-8") as f:
-            json.dump(self.to_data_dict(), f, indent=4)
+        # Save search step data ({id}_search.json)
+        with open(self._get_search_data_path(), "w", encoding="utf-8") as f:
+            json.dump(self.to_search_data_dict(), f, indent=4)
+            
+        # Save consolidate step data ({id}_consolidate.json)
+        with open(self._get_consolidate_data_path(), "w", encoding="utf-8") as f:
+            json.dump(self.to_consolidate_data_dict(), f, indent=4)
+            
+        # Save rewrite step data ({id}_rewrite.json)
+        with open(self._get_rewrite_data_path(), "w", encoding="utf-8") as f:
+            json.dump(self.to_rewrite_data_dict(), f, indent=4)
             
         print(f"Saved project {self.vraag}")
 
@@ -64,17 +88,29 @@ class Project:
             "subvragen": self._subvragen,
         }
         
-    def to_data_dict(self) -> Dict[str, Any]:
-        """Serializes the project's dynamic data to a dictionary."""
+    def to_search_data_dict(self) -> Dict[str, Any]:
+        """Serializes the project's search step data to a dictionary."""
         return {
             "messages": self._messages,
-            "consolidate_messages": self._consolidate_messages,
-            "rewrite_messages": self._rewrite_messages,
             "agent_found_documents": self._agent_found_documents,
             "self_found_documents": self._self_found_documents,
             "scratchpad": self._scratchpad,
-            "saved_selection_consolidate": self._saved_selection_consolidate,
             "selected_doc_id": self._selected_doc_id,
+        }
+    
+    def to_consolidate_data_dict(self) -> Dict[str, Any]:
+        """Serializes the project's consolidate step data to a dictionary."""
+        return {
+            "consolidate_messages": self._consolidate_messages,
+            "saved_selection_consolidate": self._saved_selection_consolidate,
+            "consolidated_text": self._consolidated_text,
+        }
+    
+    def to_rewrite_data_dict(self) -> Dict[str, Any]:
+        """Serializes the project's rewrite step data to a dictionary."""
+        return {
+            "rewrite_messages": self._rewrite_messages,
+            "rewritten_text": self._rewritten_text,
         }
 
     @classmethod
@@ -92,21 +128,35 @@ class Project:
             subvragen=metadata.get("subvragen", [])
         )
         
-        if os.path.exists(data_path):
-            with open(data_path, "r", encoding="utf-8") as f:
+        # Load search step data if it exists
+        search_data_path = project._get_search_data_path()
+        if os.path.exists(search_data_path):
+            with open(search_data_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 project._messages = data.get("messages", project._messages)
-                project._consolidate_messages = data.get("consolidate_messages", project._consolidate_messages)
-                project._rewrite_messages = data.get("rewrite_messages", project._rewrite_messages)
                 project._agent_found_documents = data.get("agent_found_documents", {})
                 project._self_found_documents = data.get("self_found_documents", {})
                 project._scratchpad = data.get("scratchpad", [])
-                project._saved_selection_consolidate = data.get("saved_selection_consolidate", [])
                 project._selected_doc_id = data.get("selected_doc_id")
+        
+        # Load consolidate step data if it exists
+        consolidate_data_path = project._get_consolidate_data_path()
+        if os.path.exists(consolidate_data_path):
+            with open(consolidate_data_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                project._consolidate_messages = data.get("consolidate_messages", project._consolidate_messages)
+                project._saved_selection_consolidate = data.get("saved_selection_consolidate", [])
+                project._consolidated_text = data.get("consolidated_text", "")
+        
+        # Load rewrite step data if it exists
+        rewrite_data_path = project._get_rewrite_data_path()
+        if os.path.exists(rewrite_data_path):
+            with open(rewrite_data_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                project._rewrite_messages = data.get("rewrite_messages", project._rewrite_messages)
+                project._rewritten_text = data.get("rewritten_text", "")
 
         return project
-
-    # --- Properties for controlled access and auto-saving ---
 
     @property
     def id(self) -> str:
@@ -231,4 +281,22 @@ class Project:
     def reset_rewrite_messages(self):
         """Reset message history for the rewrite agent."""
         self._rewrite_messages.clear()
+        self.save()
+        
+    @property
+    def consolidated_text(self) -> str:
+        return self._consolidated_text
+    
+    @consolidated_text.setter
+    def consolidated_text(self, value: str):
+        self._consolidated_text = value
+        self.save()
+        
+    @property
+    def rewritten_text(self) -> str:
+        return self._rewritten_text
+    
+    @rewritten_text.setter
+    def rewritten_text(self, value: str):
+        self._rewritten_text = value
         self.save()

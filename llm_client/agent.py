@@ -12,12 +12,16 @@ class MultiTurnAgent:
         prompt_processor: PromptBuilder,
         tools: Optional[List[ToolBase]] = None,
         max_history_turns: int = 5,
+        max_prompt_history_size: Optional[int] = None,
+        max_response_history_size: Optional[int] = None,
         messages: Optional[List[Dict[str, Any]]] = None
     ):
         """Initializes the agent with an internal, stateful scratchpad."""
         self.llm_processor = llm_processor
         self.prompt_processor = prompt_processor
         self.max_history_turns = max_history_turns
+        self.max_prompt_history_size = max_prompt_history_size
+        self.max_response_history_size = max_response_history_size
         self.messages: List[Dict[str, Any]] = messages if messages is not None else []
         self.scratchpad: List[Dict[str, Any]] = []
         self.prompt_history : List = []
@@ -62,15 +66,22 @@ class MultiTurnAgent:
         final_history.extend(conversation)
         return final_history
 
+    def _append_with_max_size(self, history_list: List, item: Any, max_size: Optional[int]) -> None:
+        """Appends an item to a history list, maintaining FIFO order and max size limit."""
+        history_list.append(item)
+        if max_size is not None and len(history_list) > max_size:
+            # Remove oldest items to maintain max size (FIFO)
+            del history_list[:len(history_list) - max_size]
+
     def chat(self, max_tool_turns: int = 5, **kwargs) -> str:
         """Executes the full conversation loop and returns the final answer."""
         self.messages = self.prompt_processor.create_prompt(history=self.messages, **kwargs)
         
         for _ in range(max_tool_turns):
             history_with_scratchpad = self._inject_scratchpad_into_history(self._get_conversation_window())
-            self.prompt_history.append(history_with_scratchpad)
+            self._append_with_max_size(self.prompt_history, history_with_scratchpad, self.max_prompt_history_size)
             result = self.llm_processor.process(history_with_scratchpad, tools=self.tool_schemas, tool_choice="auto")
-            self.response_history.append(result)
+            self._append_with_max_size(self.response_history, result, self.max_response_history_size)
             if not result.thinking:
                 self.messages.append(result.message)
                 return result.raw_content or "I could not generate a response."
@@ -87,7 +98,6 @@ class MultiTurnAgent:
                     else:
                         tool_to_run = self._available_tools.get(function_name)
                         if tool_to_run:
-                            # The agent's responsibility is now much simpler: just execute.
                             tool_output = tool_to_run.execute(**args)
                         else:
                             raise ValueError(f"Tool '{function_name}' not found.")
@@ -103,10 +113,14 @@ class MultiTurnAgent:
         """Clears the conversation history."""
         self.messages.clear()
         self.scratchpad.clear()
+        self.prompt_history.clear()
+        self.response_history.clear()
         
     def reset_messages(self):
         """Clears only the conversation messages, preserving the scratchpad."""
         self.messages.clear()
+        self.prompt_history.clear()
+        self.response_history.clear()
 
     def _get_conversation_window(self) -> List[Dict[str, Any]]:
         """Retrieves the conversation history, respecting the rolling window size."""
