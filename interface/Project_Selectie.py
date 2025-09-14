@@ -11,6 +11,7 @@ from interface.utils.session_state import initialize_session_state
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
 mlflow.set_experiment("Contentcreatie")
 mlflow.openai.autolog()
+
 # Pagina Configuratie en Initialisatie
 logo_url = "https://www.belastingdienst.nl/bld-assets/bld/rhslogos/bld_logo.svg"
 st.set_page_config(
@@ -35,19 +36,28 @@ with st.form("new_project_form"):
         project_id = str(uuid.uuid4())
         create_project(project_id, project_question)
         st.success(f"Project '{project_question}' succesvol aangemaakt!")
+        # Force a reload of the project list to include the new project
+        st.session_state.projects = None
+        st.rerun()
 
 st.header("Bestaande Projecten")
-projects = get_all_projects()
+projects_metadata = get_all_projects()
 
-if not projects:
+if not projects_metadata:
     st.info("Er zijn nog geen projecten. Maak hierboven een nieuw project aan om te beginnen.")
 else:
     project_list = []
-    for project_id, project in projects.items():
+    for project_id, data in projects_metadata.items():
+        vraag = ""
+        # Handle both full Project objects and metadata dicts to prevent errors
+        if isinstance(data, dict):
+            vraag = data.get("vraag", "Vraag niet gevonden")
+        else:  # Assumes it is a Project object
+            vraag = getattr(data, "vraag", "Vraag niet gevonden")
+
         project_list.append({
-            "project_id": project.id,
-            "vraag": project.vraag,
-            "documenten": len(project.agent_found_documents if project.agent_found_documents else [])
+            "project_id": project_id,
+            "vraag": vraag,
         })
 
     df = pd.DataFrame(project_list)
@@ -67,7 +77,6 @@ else:
         column_config={
             "project_id": None,
             "vraag": st.column_config.TextColumn("Vraag", width="large"),
-            "documenten": st.column_config.NumberColumn("Aantal Documenten", format="%d")
         },
         height=400
     )
@@ -77,4 +86,6 @@ else:
         selected_row_index = selection['selection']['rows'][0]
         selected_project_id = filtered_df.iloc[selected_row_index]['project_id']
         st.session_state.active_project_id = selected_project_id
+        # The get_active_project function will handle loading the full project data
         st.switch_page("pages/1_Zoeken_en_Selecteren.py")
+

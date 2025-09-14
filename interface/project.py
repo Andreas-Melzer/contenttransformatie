@@ -7,36 +7,96 @@ from config.settings import settings
 from interface.utils.debounce import debounce
 
 class Project:
-    """Encapsuleert alle data en logica voor een enkel contentcreatie-project."""
+    """
+    Encapsulates all data and logic for a single content creation project,
+    managing data persistence across separate metadata and data files.
+    """
 
     def __init__(self, vraag: str, subvragen: Optional[List[str]], project_id: Optional[str] = None):
         self._id: str = project_id or str(uuid.uuid4())
         self._vraag: str = vraag
-        self._subvragen: List[str] = subvragen
+        self._subvragen: List[str] = subvragen or []
+
+        # Default values for data attributes
         self._messages: List[Dict[str, Any]] = [
-            {"role": "assistant", "content": f"Oké, ik start het onderzoek voor de vraag: '{vraag}' en subvragen {" ".join(subvragen)}. Laten we beginnen."}
+            {"role": "assistant", "content": f"Oké, ik start het onderzoek voor de vraag: '{vraag}' en subvragen {self._subvragen}. Laten we beginnen."}
         ]
         self._agent_found_documents: Dict[str, Any] = {}
         self._self_found_documents: Dict[str, Any] = {}
-        self._search_selected_documents: Dict[str, Any] = {}
-        self._selected_documents: List[str] = []
-        self._selected_doc_id: Optional[str] = None
         self._scratchpad: List[Dict[str, Any]] = []
-        self._consolidated_content: Optional[str] = None
-        self._rewritten_content: Optional[str] = None
         self._saved_selection_consolidate: List[str] = []
-        self._validated: bool = False
-        self.agent: Optional[MultiTurnAgent] = None  # Agent wordt extern geïnitialiseerd
+        self._selected_doc_id: Optional[str] = None
         
+        # Non-persistent attribute
+        self.agent: Optional[MultiTurnAgent] = None
+
+    def _get_path(self, suffix: str = "") -> str:
+        """Constructs the file path for project files."""
+        return os.path.join(settings.projects_data_root, f"{self.id}{suffix}.json")
+
     @debounce(0.5)
     def save(self):
-        """Slaat de huidige staat van het project op in een JSON-bestand."""
+        """Saves the project's metadata and data to separate files."""
         if not os.path.exists(settings.projects_data_root):
             os.makedirs(settings.projects_data_root)
-        project_path = os.path.join(settings.projects_data_root, f"{self.id}.json")
-        with open(project_path, "w") as f:
-            json.dump(self.to_dict(), f, indent=4)
-        print(f"saved project {self.vraag}")
+        
+        # Save metadata file ({id}.json)
+        with open(self._get_path(), "w", encoding="utf-8") as f:
+            json.dump(self.to_metadata_dict(), f, indent=4)
+            
+        # Save data file ({id}_data.json)
+        with open(self._get_path("_data"), "w", encoding="utf-8") as f:
+            json.dump(self.to_data_dict(), f, indent=4)
+            
+        print(f"Saved project {self.vraag}")
+
+    def to_metadata_dict(self) -> Dict[str, Any]:
+        """Serializes the project's metadata to a dictionary."""
+        return {
+            "id": self._id,
+            "vraag": self._vraag,
+            "subvragen": self._subvragen,
+        }
+        
+    def to_data_dict(self) -> Dict[str, Any]:
+        """Serializes the project's dynamic data to a dictionary."""
+        return {
+            "messages": self._messages,
+            "agent_found_documents": self._agent_found_documents,
+            "self_found_documents": self._self_found_documents,
+            "scratchpad": self._scratchpad,
+            "saved_selection_consolidate": self._saved_selection_consolidate,
+            "selected_doc_id": self._selected_doc_id,
+        }
+
+    @classmethod
+    def from_id(cls, project_id: str) -> "Project":
+        """Loads a project from its metadata and data files."""
+        metadata_path = os.path.join(settings.projects_data_root, f"{project_id}.json")
+        data_path = os.path.join(settings.projects_data_root, f"{project_id}_data.json")
+
+        with open(metadata_path, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+
+        project = cls(
+            project_id=metadata["id"],
+            vraag=metadata["vraag"],
+            subvragen=metadata.get("subvragen", [])
+        )
+        
+        if os.path.exists(data_path):
+            with open(data_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                project._messages = data.get("messages", project._messages)
+                project._agent_found_documents = data.get("agent_found_documents", {})
+                project._self_found_documents = data.get("self_found_documents", {})
+                project._scratchpad = data.get("scratchpad", [])
+                project._saved_selection_consolidate = data.get("saved_selection_consolidate", [])
+                project._selected_doc_id = data.get("selected_doc_id")
+
+        return project
+
+    # --- Properties for controlled access and auto-saving ---
 
     @property
     def id(self) -> str:
@@ -45,10 +105,19 @@ class Project:
     @property
     def vraag(self) -> str:
         return self._vraag
-
+    
     @vraag.setter
     def vraag(self, value: str):
         self._vraag = value
+        self.save()
+
+    @property
+    def subvragen(self) -> List[str]:
+        return self._subvragen
+
+    @subvragen.setter
+    def subvragen(self, value: List[str]):
+        self._subvragen = value
         self.save()
 
     @property
@@ -92,7 +161,7 @@ class Project:
         return self._saved_selection_consolidate
     
     @saved_selection_consolidate.setter
-    def saved_selection_consolidate(self, value: Optional[List[str]]):
+    def saved_selection_consolidate(self, value: List[str]):
         self._saved_selection_consolidate = value
         self.save()
         
@@ -104,15 +173,6 @@ class Project:
     def selected_doc_id(self, value: Optional[str]):
         self._selected_doc_id = value
         self.save()
-
-    @property
-    def subvragen(self) -> Optional[List[str]]:
-        return self._subvragen
-    
-    @subvragen.setter
-    def subvragen(self,value: Optional[List[str]]) -> Optional[List[str]]:
-        self._subvragen = value
-        self.save()
         
     @property
     def found_documents(self):
@@ -122,39 +182,3 @@ class Project:
         if doc_id:
             self._agent_found_documents[doc_id] = relevance
             self.save()
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Serializes the project to a dictionary, excluding the agent."""
-        return {
-            "id": self._id,
-            "vraag": self._vraag,
-            "subvragen" :self._subvragen,
-            "messages": self._messages,
-            "agent_found_documents": self._agent_found_documents,
-            "self_found_documents": self._self_found_documents,
-            "search_selected_documents": self._search_selected_documents,
-            "selected_documents": self._selected_documents,
-            "selected_doc_id": self._selected_doc_id,
-            "scratchpad": self._scratchpad,
-            "consolidated_content": self._consolidated_content,
-            "rewritten_content": self._rewritten_content,
-            "saved_selection_consolidate": self._saved_selection_consolidate,
-            "validated": self._validated,
-        }
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Project":
-        """Creates a Project instance from a dictionary."""
-        project = cls(vraag=data["vraag"], subvragen=data["subvragen"],project_id=data["id"])
-        project._messages = data.get("messages", [])
-        project._agent_found_documents = data.get("agent_found_documents", {})
-        project._self_found_documents = data.get("self_found_documents", {})
-        project._search_selected_documents = data.get("search_selected_documents", {})
-        project._selected_documents = data.get("selected_documents", [])
-        project._selected_doc_id = data.get("selected_doc_id")
-        project._scratchpad = data.get("scratchpad", [])
-        project._consolidated_content = data.get("consolidated_content")
-        project._rewritten_content = data.get("rewritten_content")
-        project._saved_selection_consolidate = data.get("saved_selection_consolidate", [])
-        project._validated = data.get("validated", False)
-        return project
