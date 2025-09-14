@@ -16,3 +16,4 @@ nicegui
 Whoosh-Reloaded
 tiktoken
 JsonExtractor
+openpyxl

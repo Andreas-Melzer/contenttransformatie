@@ -1,0 +1,8 @@
+Ik wil graag de geselecteerde documenten consolideren voor de vraag: "{{ query }}". 
+
+De geselecteerde documenten zijn:
+{% for doc_id, relevance in selected_documents.items() %}
+- {{ doc_id }} (Relevantie: {{ relevance }})
+{% endfor %}
+
+Kan je helpen om deze documenten te organiseren en structureren in een samenhangend geheel?

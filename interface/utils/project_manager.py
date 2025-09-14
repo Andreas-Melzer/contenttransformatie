@@ -1,6 +1,6 @@
 import streamlit as st
 from interface.project import Project
-from interface.utils.component_loader import load_heavy_components, initialize_agent_for_project
+from interface.utils.component_loader import load_heavy_components, initialize_agent_for_project, initialize_consolidate_agent_for_project, initialize_rewrite_agent_for_project
 import os
 import json
 from  config.settings import settings
@@ -12,6 +12,8 @@ def load_project(project_id: str) -> Project | None:
         project = Project.from_id(project_id)
         llm, _, summary_doc_store, vector_store = load_heavy_components()
         project.agent = initialize_agent_for_project(project, llm, vector_store, summary_doc_store)
+        project.consolidate_agent = initialize_consolidate_agent_for_project(project, llm, vector_store, summary_doc_store)
+        project.rewrite_agent = initialize_rewrite_agent_for_project(project, llm, vector_store, summary_doc_store)
         return project
     except FileNotFoundError:
         return None
@@ -21,6 +23,8 @@ def create_project(project_id: str, vraag: str):
     llm, _, summary_doc_store, vector_store = load_heavy_components()
     project = Project(vraag=vraag, subvragen=[], project_id=project_id)
     project.agent = initialize_agent_for_project(project, llm, vector_store, summary_doc_store)
+    project.consolidate_agent = initialize_consolidate_agent_for_project(project, llm, vector_store, summary_doc_store)
+    project.rewrite_agent = initialize_rewrite_agent_for_project(project, llm, vector_store, summary_doc_store)
     project.save()
     st.session_state.projects[project_id] = project
 
@@ -73,6 +77,7 @@ def load_all_projects():
                 print(f"Skipping corrupt metadata file: {filename}")
                 continue
 
+    #TODO dit moet echt ergens anders gebeuren
     # Synchroniseer met de initiële projectenlijst
     project_list_path = os.path.join(settings.data_root, "project_list.json")
     if os.path.exists(project_list_path):

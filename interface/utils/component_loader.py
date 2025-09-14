@@ -89,6 +89,65 @@ def initialize_agent_for_project(project: Project, llm: LLMProcessor, vector_sto
     agent = MultiTurnAgent(
         llm_processor=llm,
         prompt_processor=PromptBuilder('prompt_templates', 'search'),
-        tools=[vs_tool, shortlist_tool, list_tool, read_tool]
+        tools=[vs_tool, shortlist_tool, list_tool, read_tool],
+        messages=project.messages
+    )
+    return agent
+    
+def initialize_consolidate_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, summary_doc_store : DocumentStore) -> MultiTurnAgent:
+    """Initialiseert en configureert de consolidate agent voor een specifiek project."""
+    
+    on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
+    on_result_with_project = lambda tool_result: streamlit_tool_result_callback(tool_result, project)
+    on_list_documents = lambda tool_result: list_documents_callback(tool_result, project)
+
+    vs_tool = VectorSearchTool(
+        vector_store=vector_store,
+        on_result=on_result_with_project
+    )
+    shortlist_tool = DocumentShortlistTool(
+        on_call=on_call_with_project
+    )
+    list_tool = ListSelectedDocumentsTool(
+        on_result=on_list_documents
+    )
+    read_tool = ReadDocumentsTool(
+        doc_store=summary_doc_store
+    )
+
+    agent = MultiTurnAgent(
+        llm_processor=llm,
+        prompt_processor=PromptBuilder('prompt_templates', 'consolidate'),
+        tools=[vs_tool, shortlist_tool, list_tool, read_tool],
+        messages=project.consolidate_messages
+    )
+    return agent
+    
+def initialize_rewrite_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, summary_doc_store : DocumentStore) -> MultiTurnAgent:
+    """Initialiseert en configureert de rewrite agent voor een specifiek project."""
+    
+    on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
+    on_result_with_project = lambda tool_result: streamlit_tool_result_callback(tool_result, project)
+    on_list_documents = lambda tool_result: list_documents_callback(tool_result, project)
+
+    vs_tool = VectorSearchTool(
+        vector_store=vector_store,
+        on_result=on_result_with_project
+    )
+    shortlist_tool = DocumentShortlistTool(
+        on_call=on_call_with_project
+    )
+    list_tool = ListSelectedDocumentsTool(
+        on_result=on_list_documents
+    )
+    read_tool = ReadDocumentsTool(
+        doc_store=summary_doc_store
+    )
+
+    agent = MultiTurnAgent(
+        llm_processor=llm,
+        prompt_processor=PromptBuilder('prompt_templates', 'rewrite'),
+        tools=[vs_tool, shortlist_tool, list_tool, read_tool],
+        messages=project.rewrite_messages
     )
     return agent

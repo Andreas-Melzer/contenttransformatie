@@ -11,13 +11,14 @@ class MultiTurnAgent:
         llm_processor: LLMProcessor,
         prompt_processor: PromptBuilder,
         tools: Optional[List[ToolBase]] = None,
-        max_history_turns: int = 5
+        max_history_turns: int = 5,
+        messages: Optional[List[Dict[str, Any]]] = None
     ):
         """Initializes the agent with an internal, stateful scratchpad."""
         self.llm_processor = llm_processor
         self.prompt_processor = prompt_processor
         self.max_history_turns = max_history_turns
-        self.messages: List[Dict[str, Any]] = []
+        self.messages: List[Dict[str, Any]] = messages if messages is not None else []
         self.scratchpad: List[Dict[str, Any]] = []
         self.prompt_history : List = []
         self.response_history : List = []
@@ -102,6 +103,10 @@ class MultiTurnAgent:
         """Clears the conversation history."""
         self.messages.clear()
         self.scratchpad.clear()
+        
+    def reset_messages(self):
+        """Clears only the conversation messages, preserving the scratchpad."""
+        self.messages.clear()
 
     def _get_conversation_window(self) -> List[Dict[str, Any]]:
         """Retrieves the conversation history, respecting the rolling window size."""

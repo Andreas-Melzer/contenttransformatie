@@ -5,7 +5,9 @@ from typing import List, Dict, Any
 import tqdm
 
 JAR_FILES_TO_PROCESS: List[str] = [
-    "K:\Repo\Python\contentcreatie\content\wit\Content_wit.jar"
+    "K:\Repo\Python\contentcreatie\content\wit\Content_wit.jar",
+    "K:\Repo\Python\contentcreatie\content\geel\Translate_nl-NL_to_nl_2025_08_24_14_45_17_259.jar",
+    "K:\Repo\Python\contentcreatie\content\geel\Translate_nl-NL_to_nl_2025_08_24_15_00_30_980.jar"
 ]
 
 

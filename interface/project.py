@@ -27,8 +27,14 @@ class Project:
         self._saved_selection_consolidate: List[str] = []
         self._selected_doc_id: Optional[str] = None
         
-        # Non-persistent attribute
+        # Default values for consolidate and rewrite data attributes
+        self._consolidate_messages: List[Dict[str, Any]] = []
+        self._rewrite_messages: List[Dict[str, Any]] = []
+        
+        # Non-persistent attributes
         self.agent: Optional[MultiTurnAgent] = None
+        self.consolidate_agent: Optional[MultiTurnAgent] = None
+        self.rewrite_agent: Optional[MultiTurnAgent] = None
 
     def _get_path(self, suffix: str = "") -> str:
         """Constructs the file path for project files."""
@@ -62,6 +68,8 @@ class Project:
         """Serializes the project's dynamic data to a dictionary."""
         return {
             "messages": self._messages,
+            "consolidate_messages": self._consolidate_messages,
+            "rewrite_messages": self._rewrite_messages,
             "agent_found_documents": self._agent_found_documents,
             "self_found_documents": self._self_found_documents,
             "scratchpad": self._scratchpad,
@@ -88,6 +96,8 @@ class Project:
             with open(data_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 project._messages = data.get("messages", project._messages)
+                project._consolidate_messages = data.get("consolidate_messages", project._consolidate_messages)
+                project._rewrite_messages = data.get("rewrite_messages", project._rewrite_messages)
                 project._agent_found_documents = data.get("agent_found_documents", {})
                 project._self_found_documents = data.get("self_found_documents", {})
                 project._scratchpad = data.get("scratchpad", [])
@@ -127,6 +137,24 @@ class Project:
     @messages.setter
     def messages(self, value: List[Dict[str, Any]]):
         self._messages = value
+        self.save()
+        
+    @property
+    def consolidate_messages(self) -> List[Dict[str, Any]]:
+        return self._consolidate_messages
+
+    @consolidate_messages.setter
+    def consolidate_messages(self, value: List[Dict[str, Any]]):
+        self._consolidate_messages = value
+        self.save()
+        
+    @property
+    def rewrite_messages(self) -> List[Dict[str, Any]]:
+        return self._rewrite_messages
+
+    @rewrite_messages.setter
+    def rewrite_messages(self, value: List[Dict[str, Any]]):
+        self._rewrite_messages = value
         self.save()
 
     @property
@@ -182,3 +210,25 @@ class Project:
         if doc_id:
             self._agent_found_documents[doc_id] = relevance
             self.save()
+            
+    def reset_messages(self):
+        """Reset all message histories for the project."""
+        self._messages.clear()
+        self._consolidate_messages.clear()
+        self._rewrite_messages.clear()
+        self.save()
+        
+    def reset_search_messages(self):
+        """Reset message history for the search agent."""
+        self._messages.clear()
+        self.save()
+        
+    def reset_consolidate_messages(self):
+        """Reset message history for the consolidate agent."""
+        self._consolidate_messages.clear()
+        self.save()
+        
+    def reset_rewrite_messages(self):
+        """Reset message history for the rewrite agent."""
+        self._rewrite_messages.clear()
+        self.save()
