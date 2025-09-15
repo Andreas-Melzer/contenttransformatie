@@ -33,7 +33,7 @@ class Project:
         
         # Attributes to store consolidated and rewritten text
         self._consolidated_text: str = ""
-        self._consolidated_json = Dict = {}
+        self._consolidated_json: Dict = {}
         self._rewritten_text: str = {}
         
         # Non-persistent attributes
@@ -149,6 +149,7 @@ class Project:
                 project._consolidate_messages = data.get("consolidate_messages", project._consolidate_messages)
                 project._saved_selection_consolidate = data.get("saved_selection_consolidate", [])
                 project._consolidated_text = data.get("consolidated_text", "")
+                project._consolidated_json = data.get("consolidated_json", {})
         
         # Load rewrite step data if it exists
         rewrite_data_path = project._get_rewrite_data_path()
