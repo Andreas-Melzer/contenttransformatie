@@ -12,7 +12,7 @@ def main():
 
     # Construct the path to the Streamlit entrypoint file
     # os.path.join ensures the path is correct for any OS (e.g., uses \ on Windows, / on Linux/Mac)
-    app_file = os.path.join(script_dir, "interface", "Project_Selectie.py")
+    app_file = os.path.join(script_dir, "interface", "0_Project_Selectie.py")
 
     # Check if the file actually exists before trying to run it
     if not os.path.exists(app_file):

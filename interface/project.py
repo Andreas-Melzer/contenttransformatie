@@ -33,7 +33,8 @@ class Project:
         
         # Attributes to store consolidated and rewritten text
         self._consolidated_text: str = ""
-        self._rewritten_text: str = ""
+        self._consolidated_json = Dict = {}
+        self._rewritten_text: str = {}
         
         # Non-persistent attributes
         self.agent: Optional[MultiTurnAgent] = None
@@ -102,6 +103,7 @@ class Project:
         """Serializes the project's consolidate step data to a dictionary."""
         return {
             "consolidate_messages": self._consolidate_messages,
+            "consolidated_json" :self._consolidated_json,
             "saved_selection_consolidate": self._saved_selection_consolidate,
             "consolidated_text": self._consolidated_text,
         }
@@ -283,6 +285,8 @@ class Project:
         self._rewrite_messages.clear()
         self.save()
         
+        
+    
     @property
     def consolidated_text(self) -> str:
         return self._consolidated_text
@@ -290,6 +294,15 @@ class Project:
     @consolidated_text.setter
     def consolidated_text(self, value: str):
         self._consolidated_text = value
+        self.save()
+        
+    @property
+    def consolidated_json(self) -> Dict:
+        return self._consolidated_json
+    
+    @consolidated_json.setter
+    def consolidated_json(self, value :Dict):
+        self._consolidated_json = value
         self.save()
         
     @property
