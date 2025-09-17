@@ -43,7 +43,7 @@ class Project:
 
     def _get_path(self, suffix: str = "") -> str:
         """Constructs the file path for project files."""
-        return os.path.join(settings.projects_data_root, f"{self.id}{suffix}.json")
+        return os.path.join(settings.projects_folder, f"{self.id}{suffix}.json")
     
     def _get_search_data_path(self) -> str:
         """Constructs the file path for search step data."""
@@ -60,8 +60,8 @@ class Project:
     @debounce(0.5)
     def save(self):
         """Saves the project's metadata and data to separate files."""
-        if not os.path.exists(settings.projects_data_root):
-            os.makedirs(settings.projects_data_root)
+        if not os.path.exists(settings.projects_folder):
+            os.makedirs(settings.projects_folder)
         
         # Save metadata file ({id}.json)
         with open(self._get_path(), "w", encoding="utf-8") as f:
@@ -118,8 +118,8 @@ class Project:
     @classmethod
     def from_id(cls, project_id: str) -> "Project":
         """Loads a project from its metadata and data files."""
-        metadata_path = os.path.join(settings.projects_data_root, f"{project_id}.json")
-        data_path = os.path.join(settings.projects_data_root, f"{project_id}_data.json")
+        metadata_path = os.path.join(settings.projects_folder, f"{project_id}.json")
+        data_path = os.path.join(settings.projects_folder, f"{project_id}_data.json")
 
         with open(metadata_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)

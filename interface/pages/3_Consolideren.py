@@ -2,9 +2,9 @@ import streamlit as st
 import json
 from interface.utils.component_loader import load_heavy_components
 from interface.utils.project_manager import get_active_project
-from interface.utils.ui_components import display_agent_search_results
+from interface.components.ui_components import display_agent_search_results
 from llm_client.llm_client import json_decode
-from interface.utils.consolidation_utils import json_to_markdown
+from interface.utils.consolidation_utils import format_consolidated_json
 import pandas as pd
 from interface.components.kme_document_grid import display_kme_document_grid_with_selector
                 
@@ -165,7 +165,7 @@ with tab2:
 with tab3:
     # Display consolidated text as Markdown
     st.markdown("### Geconsolideerde Tekst")
-    consolidated_markdown = json_to_markdown(active_project.consolidated_json)
+    consolidated_markdown = format_consolidated_json(active_project.consolidated_json)
     st.markdown(consolidated_markdown)
     
         
@@ -178,7 +178,7 @@ with tab3:
             agent_output = active_project.consolidate_messages[-1]["content"]
             try:
                 agent_json = json.loads(agent_output)
-                st.session_state.consolidated_text = json_to_markdown(agent_json)
+                st.session_state.consolidated_text = format_consolidated_json(agent_json)
             except json.JSONDecodeError:
                 st.session_state.consolidated_text = agent_output
             st.rerun()

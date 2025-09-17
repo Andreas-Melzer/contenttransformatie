@@ -10,7 +10,7 @@ from llm_client.agent import MultiTurnAgent
 from llm_client.document_vector_store import DocumentStore, VectorStore
 from llm_client.llm_client import EmbeddingProcessor, LLMProcessor
 from llm_client.prompt_builder import PromptBuilder
-from implementations.tools.document_shortlist_tool import DocumentShortlistTool
+from implementations.tools.document_relevance_tool import DocumentRelevanceTool
 from implementations.tools.list_selected_documents_tool import \
     ListSelectedDocumentsTool
 from implementations.tools.read_documents_tool import ReadDocumentsTool
@@ -52,15 +52,17 @@ def load_heavy_components():
 
     doc_store = DocumentStore(
         settings.raw_doc_store_name,
-        settings.data_root,
+        settings.docstore_folder,
         settings.indexed_metadata_keys
     )
     summary_doc_store = DocumentStore(
         settings.summary_doc_store_name,
-        settings.data_root,
+        settings.docstore_folder,
         settings.summary_indexed_metadata_keys
     )
-    vector_store = VectorStore(embedder=embedder, doc_store=summary_doc_store)
+    vector_store = VectorStore(embedder=embedder, 
+                               doc_store=summary_doc_store,
+                               data_root=settings.docstore_folder)
 
     return llm, doc_store, summary_doc_store, vector_store
 
@@ -76,7 +78,7 @@ def initialize_agent_for_project(project: Project, llm: LLMProcessor, vector_sto
         vector_store=vector_store,
         on_result=on_result_with_project
     )
-    shortlist_tool = DocumentShortlistTool(
+    shortlist_tool = DocumentRelevanceTool(
         on_call=on_call_with_project
     )
     list_tool = ListSelectedDocumentsTool(
@@ -105,7 +107,7 @@ def initialize_consolidate_agent_for_project(project: Project, llm: LLMProcessor
         vector_store=vector_store,
         on_result=on_result_with_project
     )
-    shortlist_tool = DocumentShortlistTool(
+    shortlist_tool = DocumentRelevanceTool(
         on_call=on_call_with_project
     )
     list_tool = ListSelectedDocumentsTool(
@@ -134,7 +136,7 @@ def initialize_rewrite_agent_for_project(project: Project, llm: LLMProcessor, ve
         vector_store=vector_store,
         on_result=on_result_with_project
     )
-    shortlist_tool = DocumentShortlistTool(
+    shortlist_tool = DocumentRelevanceTool(
         on_call=on_call_with_project
     )
     list_tool = ListSelectedDocumentsTool(

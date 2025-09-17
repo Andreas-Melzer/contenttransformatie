@@ -5,13 +5,7 @@
 .ipynb_aml_checkpoints/*
 *.pyc
 *.toc
-metadata_index/
 *.pkl
-*.faiss
 *.csv
-data/kme_content/metadata_index/_MAIN_0.toc
-data/kme_content_summarized/metadata_index/_MAIN_0.toc
 *.env
 *.xlsx
-content/*
-projects/*

@@ -23,14 +23,11 @@ def list_documents_callback(tool_result: Dict[str, Any], project):
     Callback function for the list_selected_documents tool.
     Returns the list of all selected documents (both agent-found and user-found).
     """
-
-    # Get all selected documents
     all_documents = {
         "agent_found": list(project.agent_found_documents.keys()),
         "user_found": list(project.self_found_documents.keys())
     }
 
-    # Return the result as a JSON string
     return json.dumps(all_documents)       
 
 def streamlit_tool_result_callback(tool_result: Dict[str, Any], project: Project) -> Optional[str]:

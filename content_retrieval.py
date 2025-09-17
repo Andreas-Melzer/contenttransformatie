@@ -4,7 +4,7 @@ from llm_client.document_vector_store import (
     VectorStore,
     SimpleDocument
 )
-from kme_doc import KMEDocument
+from pipelines.kme_doc import KMEDocument
 from config.settings import settings
 
 # Get client configurations from settings
@@ -22,15 +22,15 @@ embed = llm_client.EmbeddingProcessor(
 )
 doc_store = DocumentStore(
     "kme_content",
-    settings.data_root,
+    settings.docstore_folder,
     indexed_metadata_keys=settings.indexed_metadata_keys
 )
 summary_doc_store = DocumentStore(
     "kme_content_summarized",
-    settings.data_root,
+    settings.docstore_folder,
     indexed_metadata_keys=settings.summary_indexed_metadata_keys
 )
-embedding = VectorStore(embedder=embed, doc_store=summary_doc_store)
+embedding = VectorStore(embedder=embed, doc_store=summary_doc_store,data_root=settings.docstore_folder)
 
 def query_document(text: str):
     return embedding.query(text, n_results=10)

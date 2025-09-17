@@ -2,7 +2,7 @@ import json
 from typing import Dict, Any, List, Optional, Callable, Union
 from llm_client.tools.tool_base import ToolBase
 
-class DocumentShortlistTool(ToolBase):
+class DocumentRelevanceTool(ToolBase):
     """
     A tool that allows the agent to update relevance scores for documents in a shortlist.
     The app intercepts this tool call to update the UI via an 'on_call' callback.

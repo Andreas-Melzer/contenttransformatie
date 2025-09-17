@@ -20,10 +20,10 @@ class Settings(BaseSettings):
 
     # --- Path Settings ---
     base_dir: Path = Path(__file__).resolve().parent
-    data_root: Path = base_dir / "data"
-    projects_data_root: Path = base_dir / ".." / "projects"
-    content_folder: Path = base_dir / ".." / "content"
-
+    data_root: Path = Field(base_dir / "data", validation_alias="DATA_ROOT")
+    projects_folder: Path = Field(base_dir / "data" / "projects", validation_alias="PROJECTS_FOLDER")
+    content_folder: Path = Field(base_dir / "data" / "content", validation_alias="CONTENT_FOLDER")
+    docstore_folder: Path = Field(base_dir/ "data"/ "docstores", validation_alias="DOCSTORE_FOLDER")
     # --- Client Configurations (as dictionaries) ---
     clients: Dict[str, Dict[str, Any]] = Field(default_factory=dict, exclude=True)
 

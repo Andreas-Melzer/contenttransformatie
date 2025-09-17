@@ -6,7 +6,7 @@ import pandas as pd
 from llm_client.document_vector_store import Document, DocumentStore
 from llm_client.prompt_builder import PromptBuilder
 from llm_client.llm_client import LLMProcessor
-from kme_doc import KMEDocument
+from .kme_doc import KMEDocument
 
 KME_TABLE: pd.DataFrame = pd.read_csv("data/kme_vertaaltabel.csv", sep=";").set_index("KME_ID")
 

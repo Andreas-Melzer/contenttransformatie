@@ -30,7 +30,7 @@ def _add_section_content(markdown_parts: list, section_data: dict, section_title
         markdown_parts.append("")  # Add a blank line for spacing
 
 
-def json_to_markdown(data: dict) -> str:
+def format_consolidated_json(data: dict) -> str:
     """Converts the consolidated JSON data to a Markdown formatted string.
 
     :param data: dict, The dictionary loaded from the JSON output.

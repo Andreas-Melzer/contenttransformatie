@@ -201,28 +201,7 @@ def extract_json(filename: str, doc: Dict[str, Any]) -> Dict[str, Any]:
         "publicAnswer_html": public_html,
         "publicAnswer_text": strip_html(public_html),
         "links_in_private_answer": extract_content_links(private_html or ""),
-        "topic_tags": get_tags(doc, "topic"),
-        "agentskill_tags": get_tags(doc, "agentskill"),
-        "knowledgebase_tags": get_tags(doc, "knowledgeBase"),
-        "must_read": bool(find_field(fvals, "mustRead::::") == "true"),
         'full_text': "Public Answer: " + strip_html(public_html) + ' Private Answer: ' + strip_html(private_html)
     }
     
     return rec
-
-
-def get_duplicates_details(extracted_df: pd.DataFrame) -> pd.DataFrame:
-    """Get details of duplicate entries in the extracted DataFrame.
-
-    :param extracted_df: DataFrame with extracted content.
-    :return: DataFrame with details of duplicate entries.
-    """
-    title_counts = extracted_df.groupby("title").size().reset_index(name="count")
-    dupes = title_counts[title_counts["count"] > 1]
-    dupe_details = (
-        extracted_df[extracted_df["title"].isin(dupes["title"])]
-        .groupby("title")[["id", "source_file"]]
-        .agg(list)
-        .reset_index()
-    )
-    return dupe_details

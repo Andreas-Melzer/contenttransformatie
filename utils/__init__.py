@@ -11,8 +11,7 @@ from .content_extraction_utils import (
     get_tags,
     get_comment_list,
     get_all_json_docs,
-    extract_json,
-    get_duplicates_details
+    extract_json
 )
 
 __all__ = [
@@ -25,6 +24,5 @@ __all__ = [
     "get_tags",
     "get_comment_list",
     "get_all_json_docs",
-    "extract_json",
-    "get_duplicates_details"
+    "extract_json"
 ]
