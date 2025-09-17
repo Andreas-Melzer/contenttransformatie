@@ -5,6 +5,9 @@ from interface.utils.project_manager import get_active_project
 from interface.utils.ui_components import display_agent_search_results
 from llm_client.llm_client import json_decode
 from interface.utils.consolidation_utils import json_to_markdown
+import pandas as pd
+from interface.components.kme_document_grid import display_kme_document_grid_with_selector
+                
 active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Consolideren")
 
@@ -60,9 +63,7 @@ with tab1:
                     })
             
             if docs_data:
-                import pandas as pd
-                from interface.components.kme_document_grid import display_kme_document_grid_with_selector
-                
+
                 df = pd.DataFrame(docs_data)
                 # Use a different session key to avoid conflicts
                 display_kme_document_grid_with_selector(df, active_project, session_key="consolidate_selected_docs")
@@ -162,24 +163,18 @@ with tab2:
 
 # Tab 3: Consolidation Result
 with tab3:
-    st.subheader("Consolidatie Resultaat")
-    
     # Display consolidated text as Markdown
     st.markdown("### Geconsolideerde Tekst")
     consolidated_markdown = json_to_markdown(active_project.consolidated_json)
     st.markdown(consolidated_markdown)
     
-    # Save button
-    if st.button("Opslaan", type="primary"):
-        active_project.consolidated_text = consolidated_markdown
-        st.success("Geconsolideerde tekst opgeslagen!")
         
     # Load from agent button (if there's content in the last assistant message)
     if (active_project.consolidate_messages and
         active_project.consolidate_messages[-1]["role"] == "assistant" and
         active_project.consolidate_messages[-1].get("content")):
         if st.button("Laad laatste agent output"):
-            # Convert the agent output to markdown if it's JSON
+
             agent_output = active_project.consolidate_messages[-1]["content"]
             try:
                 agent_json = json.loads(agent_output)
