@@ -170,7 +170,18 @@ class DocumentStore:
         """
         if not os.path.exists(self.persistence_file): return {}
         try:
-            with open(self.persistence_file, 'rb') as f: return pickle.load(f)
+            with open(self.persistence_file, 'rb') as f:
+                # Create a custom unpickler to handle module relocation
+                class CustomUnpickler(pickle.Unpickler):
+                    def find_class(self, module, name):
+                        # Handle the module relocation for kme_doc
+                        if module == 'kme_doc':
+                            # Redirect to the new location
+                            module = 'pipelines.kme_doc'
+                        return super().find_class(module, name)
+                
+                unpickler = CustomUnpickler(f)
+                return unpickler.load()
         except (IOError, pickle.PickleError): return {}
         
     def _save(self):
