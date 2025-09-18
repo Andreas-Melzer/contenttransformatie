@@ -17,7 +17,7 @@ Deze applicatie is ontworpen om gebruikers te helpen bij het creëren van conten
 
 ## Vereisten
 
-- Python 3.8+
+- Python 3.12+
 - De benodigde pakketten staan in [`requirements.txt`](requirements.txt:1)
 
 ## Installatie
@@ -57,6 +57,7 @@ De applicatie opent automatisch in je standaardwebbrowser.
 - [`utils/`](utils/:1) - Hulpprogramma's en hulpfuncties
 - [`implementations/`](implementations/:1) - Implementaties van tools en andere componenten
 - [`config/`](config/:1) - Configuratiebestanden
+  - [`logger.py`](config/logger.py:1) - Singleton logger implementatie
 - [`pipelines/`](pipelines/:1) - Data processing pipelines
 - [`tests/`](tests/:1) - Unit tests en integratietests
 

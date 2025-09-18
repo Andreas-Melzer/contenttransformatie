@@ -56,6 +56,7 @@ def get_active_project() -> Project | None:
 
     return project
 
+
 def load_all_projects():
     """Laadt de metadata van alle projecten van schijf voor een snelle lijstweergave."""
     projects = {}
