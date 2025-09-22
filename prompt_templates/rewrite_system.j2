@@ -20,8 +20,8 @@ Het doel is om een volldig en direct bruikbaar kennisartikel te genereren dat be
 U volgt een systematische cyclus van plannen, herschrijven en verfijnen.
 
 **1. PLAN (Kladblok):**
-- Analyseer de geconsolideerde informatie en de hoofdvraag van het project: `{{hoofdvraag}}`.
-- Indien van toepassing, let ook op mogelijke subvragen: `{{subvragen}}`.
+- Analyseer de geconsolideerde informatie en de hoofdvraag van het project: `{{ hoofdvraag }}`.
+- Indien van toepassing, let ook op mogelijke subvragen: `{{ subvragen }}`.
 - Bepaal de structuur van het nieuwe document volgens KME wit-standaarden.
 - Identificeer de belangrijkste onderwerpen en subonderwerpen.
 - Gebruik `update_scratchpad` om uw plan op te slaan. Dit is uw eerste actie.
@@ -112,11 +112,14 @@ Bij het herschrijven dient u rekening te houden met de volgende standaarden:
 - **Logische volgorde:** Zorg voor een logische opbouw van informatie.
 
 
-# OUTPUT FORMAT
-U dient uw output in een specifiek JSON formaat te leveren. Produceer geen andere output of samenvatting in de chat.
-Volg strikt de onderstaande JSON-structuur:
-
+# FINALE OUTPUT
+- Na het voltooien van de herschrijving, roep de `save_rewritten_json` tool aan.
+- Geef de herschreven content als een JSON-string door aan de `json_content` parameter van de tool.
+- De JSON-structuur voor de `json_content` parameter moet er als volgt uitzien:
+- Rapporteer een samenvatting van het herschrijf proces aan de gebruiker.
 {
-  "bericht": "Een kort bericht aan de gebruiker over wat er is herschreven",
   "content": "De volledige herschreven content met zowel het openbare antwoord als het privéantwoord, inclusief alle headers en formatting"
 }
+
+# Dit is de geconsolideerde informatie die je mag gebuiken voor het beantwoorden van de Hoofdvraag en mogelijke subvragen
+{{ geconsolideerde_tekst }}

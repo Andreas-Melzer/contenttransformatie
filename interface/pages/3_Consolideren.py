@@ -5,6 +5,7 @@ from interface.utils.project_manager import get_active_project
 from llm_client.llm_client import json_decode
 from interface.utils.consolidation_utils import format_consolidated_json
 import pandas as pd
+from interface.implementations.tools.save_consolidated_json_tool import SaveConsolidatedJsonTool
 from interface.components.kme_document_grid import display_kme_document_grid_with_selector
                 
 active_project = get_active_project()
@@ -141,16 +142,12 @@ with tab2:
                         max_tool_turns=15,
                         hoofdvraag = active_project.vraag ,
                         subvragen = active_project.subvragen,
-                        geconsolideerde_tekst = active_project.consolidated_text,
+                        geconsolideerde_tekst = active_project.consolidated_json,
                         selected_documents=docs
                     )
                     
-                    #TODO dit moet met tools gedaan worden nu lelijke oplossing
-                    final_response_json = json_decode(final_response)
+                    active_project.consolidate_messages = agent.messages
                     
-                    if final_response_json:
-                        active_project.consolidate_messages.append({"role":"assistant","content" : final_response_json['bericht']})
-                        active_project.consolidated_json = final_response_json
                     st.rerun()
         
         # Button to start automatic consolidation

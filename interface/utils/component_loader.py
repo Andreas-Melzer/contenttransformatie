@@ -10,11 +10,13 @@ from llm_client.agent import MultiTurnAgent
 from llm_client.document_vector_store import DocumentStore, VectorStore
 from llm_client.llm_client import EmbeddingProcessor, LLMProcessor
 from llm_client.prompt_builder import PromptBuilder
-from implementations.tools.document_relevance_tool import DocumentRelevanceTool
-from implementations.tools.list_selected_documents_tool import \
+from interface.implementations.tools.document_relevance_tool import DocumentRelevanceTool
+from interface.implementations.tools.list_selected_documents_tool import \
     ListSelectedDocumentsTool
-from implementations.tools.read_documents_tool import ReadDocumentsTool
-from implementations.tools.vector_search_tool import VectorSearchTool
+from interface.implementations.tools.read_documents_tool import ReadDocumentsTool
+from interface.implementations.tools.vector_search_tool import VectorSearchTool
+from interface.implementations.tools.save_consolidated_json_tool import SaveConsolidatedJsonTool
+from interface.implementations.tools.save_rewritten_json_tool import SaveRewrittenJsonTool
 
 
 @st.cache_resource
@@ -57,7 +59,7 @@ def load_heavy_components():
     return llm, doc_store, vector_store
 
 
-def initialize_tools(project: Project,vector_store: VectorStore, doc_store : DocumentStore):
+def initialize_search_tools(project: Project,vector_store: VectorStore, doc_store : DocumentStore):
     on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
     on_list_documents = lambda tool_result: list_documents_callback(tool_result, project)
 
@@ -76,13 +78,31 @@ def initialize_tools(project: Project,vector_store: VectorStore, doc_store : Doc
     )
     return [vector_search_tool,document_relevance_tool,list_tool,read_tool]
 
+def initialize_consolidate_tools(project: Project,vector_store: VectorStore, doc_store : DocumentStore):
+    on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
+    
+    save_consolidated_json_tool = SaveConsolidatedJsonTool(
+        project=project,
+        on_call=on_call_with_project
+    )
+    return [save_consolidated_json_tool]
+
+def initialize_rewrite_tools(project: Project,vector_store: VectorStore, doc_store : DocumentStore):
+    on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
+    
+    save_rewritten_json_tool = SaveRewrittenJsonTool(
+        project=project,
+        on_call=on_call_with_project
+    )
+    return [save_rewritten_json_tool]
+
 
 def initialize_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, doc_store : DocumentStore) -> MultiTurnAgent:
     """Initialiseert en configureert de agent voor een specifiek project."""
     agent = MultiTurnAgent(
         llm_processor=llm,
         prompt_processor=PromptBuilder('prompt_templates', 'search'),
-        tools=initialize_tools(project,vector_store,doc_store),
+        tools=initialize_search_tools(project,vector_store,doc_store),
         messages=project.messages
     )
     return agent
@@ -93,7 +113,7 @@ def initialize_consolidate_agent_for_project(project: Project, llm: LLMProcessor
     agent = MultiTurnAgent(
         llm_processor=llm,
         prompt_processor=PromptBuilder('prompt_templates', 'consolidate'),
-        tools=initialize_tools(project,vector_store,doc_store),
+        tools=initialize_consolidate_tools(project,vector_store,doc_store),
         messages=project.consolidate_messages
     )
     return agent
@@ -104,7 +124,7 @@ def initialize_rewrite_agent_for_project(project: Project, llm: LLMProcessor, ve
     agent = MultiTurnAgent(
         llm_processor=llm,
         prompt_processor=PromptBuilder('prompt_templates', 'rewrite'),
-        tools=initialize_tools(project,vector_store,doc_store),
+        tools=initialize_rewrite_tools(project,vector_store,doc_store),
         messages=project.rewrite_messages
     )
     return agent

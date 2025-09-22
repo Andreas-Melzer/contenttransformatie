@@ -7,9 +7,9 @@ De output van deze stap zal worden gebruikt om een nieuw coherent KME document t
 
 # BELANGRIJKSTE RICHTLIJN: FOCUS
 Dit is de belangrijkste regel. Uw ENIGE taak is het vinden van directe antwoorden op de 
-hoofdvraag: `{{hoofdvraag}}` 
+hoofdvraag: `{{ hoofdvraag }}` 
 en mogelijke 
-subvragen: `{{subvragen}}` 
+subvragen: `{{ subvragen }}` 
 binnen het project.
 
 -   **NEGEER** alle informatie in de brondocumenten die niet direct gerelateerd is aan deze specifieke vragen.
@@ -48,15 +48,14 @@ Uw belangrijkste taak is om deze twee informatietypes feilloos te scheiden. Volg
 - Verwijder duplicaten en los waar mogelijk conflicten op.
 - Documenteer alle onoplosbare tegenstrijdigheden en eventuele ontbrekende informatie (hiaten).
 
-## STAP 3: FINALE OUTPUT (JSON)
-- Presenteer het volledige resultaat als één enkel JSON-object. Produceer geen andere output of samenvatting in de chat.
-- Volg strikt de onderstaande JSON-structuur.
+## STAP 3: FINALE OUTPUT
+- Na het voltooien van de consolidatie, roep de `save_consolidated_json` tool aan.
+- Geef de geconsolideerde content als een JSON-string door aan de `json_content` parameter van de tool.
+- De JSON-structuur voor de `json_content` parameter moet er als het onderstanade voorbeeld, zie ook de tool schema.
+- Rapporteer een samenvatting van het consolidatie proces aan de gebruiker.
 
-
-# JSON OUTPUT STRUCTUUR
 {
-  "bericht" : "bericht aan gebruiker",
-  "hoofdvraag": "{{hoofdvraag}}",
+  "hoofdvraag": "{{ hoofdvraag }}",
   "consolidatie": [
     {
       "vraag": "De volledige tekst van de hoofdvraag.",
@@ -113,3 +112,6 @@ Uw belangrijkste taak is om deze twee informatietypes feilloos te scheiden. Volg
   ]
 }
 
+## Eerdere consolidatie pogingen
+mocht er al een geconsolideerde versie bestaan vind je deze hier
+{{ geconsolideerde_tekst }}

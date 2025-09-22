@@ -90,8 +90,7 @@ if agent and active_project.messages and active_project.messages[-1]["role"] == 
                     hoofdvraag = active_project.vraag ,
                     subvragen = active_project.subvragen,
                     max_tool_turns=15)
-                
-                print(final_response)
+            
                 active_project.messages = agent.messages
                 active_project.scratchpad = agent.scratchpad
     st.session_state.selected_doc_ids = []

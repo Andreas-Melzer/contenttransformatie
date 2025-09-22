@@ -7,9 +7,26 @@ import streamlit as st
 from interface.styles.custom_css import apply_custom_css
 from interface.utils.project_manager import create_project, get_all_projects
 from interface.utils.session_state import initialize_session_state
+import mlflow
+from config.settings import settings
 
+from azure.ai.ml import MLClient
+from azure.identity import DefaultAzureCredential
 
+if settings.mlflow_location == 'LOCAL':
+    mlflow.set_tracking_uri("http://127.0.0.1:5000")
+    mlflow.set_experiment("content")
+    mlflow.openai.autolog()
+elif settings.mlflow_location == 'AZURE':
+    ml_client = MLClient(
+        DefaultAzureCredential(), settings.azure_subscription_id, settings.azure_resource_group, settings.azure_workspace_name
+    )
+    mlflow_tracking_uri = ml_client.workspaces.get(settings.azure_workspace_name).mlflow_tracking_uri
+    mlflow.set_tracking_uri(mlflow_tracking_uri)
+    mlflow.set_experiment("content")
+    mlflow.openai.autolog()
 
+print(f"Logging on mlflow server on {mlflow.get_tracking_uri()}")
 # Pagina Configuratie en Initialisatie
 logo_url = "https://www.belastingdienst.nl/bld-assets/bld/rhslogos/bld_logo.svg"
 st.set_page_config(

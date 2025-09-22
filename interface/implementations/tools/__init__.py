@@ -4,3 +4,5 @@ from .list_selected_documents_tool import ListSelectedDocumentsTool
 from .read_documents_tool import ReadDocumentsTool
 from .taxonomy_search_tool import TaxnomySearchTool
 from .document_relevance_tool import DocumentRelevanceTool
+from .save_rewritten_json_tool import SaveRewrittenJsonTool
+from .save_consolidated_json_tool import SaveConsolidatedJsonTool

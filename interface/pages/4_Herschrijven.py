@@ -3,6 +3,7 @@ from interface.utils.component_loader import load_heavy_components
 from interface.utils.project_manager import get_active_project
 from llm_client.llm_client import json_decode
 import json
+from interface.implementations.tools.save_rewritten_json_tool import SaveRewrittenJsonTool
 
 active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Herschrijven")
@@ -72,14 +73,7 @@ else:
                         geconsolideerde_tekst = active_project.consolidated_json
                     )
                     
-                    # Process JSON response similar to consolidation agent
-                    final_response_json = json_decode(final_response)
-                    
-                    if final_response_json:
-                         # Add agent response to history using the "bericht" field
-                        active_project.rewrite_messages.append({"role": "assistant", "content": final_response_json['bericht']})
-                        active_project.rewritten_json = final_response_json
-                        active_project.rewritten_text = final_response_json.get('content', '')
+                    active_project.rewrite_messages = agent.messages
                     st.rerun()
         
         # Button to start automatic rewriting
