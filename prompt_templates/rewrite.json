@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Schema voor Herschrijven",
+  "description": "Valideert de structuur van de herschreven content gegenereerd door het taalmodel.",
+  "type": "object",
+  "properties": {
+    "rewrite_messages": {
+      "description": "Een lijst van berichten die de conversatiegeschiedenis van het herschrijfproces vertegenwoordigen.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "description": "De rol van de afzender van het bericht (bijv. 'user' of 'assistant').",
+            "type": "string"
+          },
+          "content": {
+            "description": "De inhoud van het bericht.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ]
+      }
+    },
+    "rewritten_text": {
+      "description": "De volledige herschreven tekst, inclusief zowel openbare als privéantwoorden.",
+      "type": "string"
+    },
+    "rewritten_json": {
+      "description": "De gestructureerde herschreven content.",
+      "type": "object",
+      "properties": {
+        "bericht": {
+          "description": "Een bericht aan de gebruiker over de status van het herschrijven.",
+          "type": "string"
+        },
+        "content": {
+          "description": "De herschreven content, gestructureerd in openbare en privéantwoorden.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bericht",
+        "content"
+      ]
+    }
+  },
+  "required": [
+    "rewrite_messages",
+    "rewritten_text",
+    "rewritten_json"
+  ]
+}

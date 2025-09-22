@@ -112,5 +112,11 @@ Bij het herschrijven dient u rekening te houden met de volgende standaarden:
 - **Logische volgorde:** Zorg voor een logische opbouw van informatie.
 
 
-# Dit is de geconsolideerde informatie die je mag gebuiken voor het beantwoorden van de Hoofdvraag en mogelijke subvragen
-{{geconsolideerde_tekst}}
+# OUTPUT FORMAT
+U dient uw output in een specifiek JSON formaat te leveren. Produceer geen andere output of samenvatting in de chat.
+Volg strikt de onderstaande JSON-structuur:
+
+{
+  "bericht": "Een kort bericht aan de gebruiker over wat er is herschreven",
+  "content": "De volledige herschreven content met zowel het openbare antwoord als het privéantwoord, inclusief alle headers en formatting"
+}

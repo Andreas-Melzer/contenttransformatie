@@ -35,6 +35,7 @@ class Project:
         self._consolidated_text: str = ""
         self._consolidated_json: Dict = {}
         self._rewritten_text: str = {}
+        self._rewritten_json: Dict = {}
         
         # Non-persistent attributes
         self.agent: Optional[MultiTurnAgent] = None
@@ -116,6 +117,7 @@ class Project:
         return {
             "rewrite_messages": self._rewrite_messages,
             "rewritten_text": self._rewritten_text,
+            "rewritten_json" : self._rewritten_json
         }
 
     @classmethod
@@ -161,6 +163,7 @@ class Project:
                 data = json.load(f)
                 project._rewrite_messages = data.get("rewrite_messages", project._rewrite_messages)
                 project._rewritten_text = data.get("rewritten_text", "")
+                project._rewritten_json = data.get("rewritten_json","")
 
         return project
 
@@ -317,3 +320,13 @@ class Project:
     def rewritten_text(self, value: str):
         self._rewritten_text = value
         self.save()
+        
+    @property
+    def rewritten_json(self) -> Dict:
+        return self._rewritten_json
+    
+    @rewritten_json.setter
+    def rewritten_json(self, value: Dict):
+        self._rewritten_json = value
+        self.save()
+

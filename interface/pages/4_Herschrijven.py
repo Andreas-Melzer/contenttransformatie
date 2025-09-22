@@ -73,8 +73,14 @@ else:
                         geconsolideerde_tekst = active_project.consolidated_json
                     )
                     
-                    # Add agent response to history
-                    active_project.rewrite_messages.append({"role": "assistant", "content": final_response})
+                    # Process JSON response similar to consolidation agent
+                    final_response_json = json_decode(final_response)
+                    
+                    if final_response_json:
+                         # Add agent response to history using the "bericht" field
+                        active_project.rewrite_messages.append({"role": "assistant", "content": final_response_json['bericht']})
+                        active_project.rewritten_json = final_response_json
+                        active_project.rewritten_text = final_response_json.get('content', '')
                     st.rerun()
         
         # Button to start automatic rewriting

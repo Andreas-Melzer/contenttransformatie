@@ -50,7 +50,6 @@ with st.sidebar:
 
     if prompt := st.chat_input("Stel uw vraag..."):
         active_project.messages = active_project.messages + [{"role": "user", "content": prompt}]
-        print(active_project.messages )
         active_project.selected_doc_id = None
         st.session_state.selected_doc_ids = []
         st.rerun()
@@ -85,7 +84,13 @@ if agent and active_project.messages and active_project.messages[-1]["role"] == 
                 agent.messages = active_project.messages
                 agent.scratchpad = active_project.scratchpad
                 query = active_project.messages[-1]["content"]
-                final_response = agent.chat(query=query, max_tool_turns=15)
+                
+                final_response = agent.chat(
+                    query=query,
+                    hoofdvraag = active_project.vraag ,
+                    subvragen = active_project.subvragen,
+                    max_tool_turns=15)
+                
                 print(final_response)
                 active_project.messages = agent.messages
                 active_project.scratchpad = agent.scratchpad
