@@ -41,7 +41,6 @@ def build_taxonomy_query(belastingsoort: str, proces_onderwerp: str | None, prod
     if product_subonderwerp:
         parts.append(_mk_term("PRODUCT_SUBONDERWERP", product_subonderwerp, contains=contains))
     if not parts:
-        # vangnet: zoek alles (praktisch zal BELASTINGSOORT verplicht zijn in de UI)
         return 'BELASTINGSOORT:*"*"'  
     return " AND ".join([p for p in parts if p])
 

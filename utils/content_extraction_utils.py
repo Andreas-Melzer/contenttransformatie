@@ -7,7 +7,6 @@ import json
 import re
 import zipfile
 import html
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 import pandas as pd
 from config.settings import Settings

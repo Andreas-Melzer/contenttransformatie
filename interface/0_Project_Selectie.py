@@ -34,7 +34,6 @@ with st.form("new_project_form"):
         project_id = str(uuid.uuid4())
         create_project(project_id, project_question)
         st.success(f"Project '{project_question}' succesvol aangemaakt!")
-        # Force a reload of the project list to include the new project
         st.session_state.projects = None
         st.rerun()
 

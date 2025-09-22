@@ -1,12 +1,9 @@
 import streamlit as st
 import pandas as pd
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, JsCode
-from typing import Dict, Any, List, Optional
+from typing import Dict
 from project import Project
 from components.kme_document_viewer import display_kme_document
 from components.kme_document_grid import display_kme_document_grid_with_selector
-from pandas import DataFrame
-
 
 
 def display_agent_search_results(doc_store, project: Project, document_dict : Dict[str,int]):

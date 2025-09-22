@@ -6,8 +6,11 @@
 #TODO debugging van agent in interface
 #TODO agent aanpassen zodat deze beter tools gebruikt
 
+# Zoek Interface
+    #TODO tijdens het zoeken moeten ook documenten op basis van de taxonomie worden geselecteerd.
+
 # Consolidatie Interface
-#TODO Volledige implementatie van de consolidatie interface
+    #TODO Volledige implementatie van de consolidatie interface
     #TODO Toevoegen van geconsolideerd document aan project
     #TODO Verbeteren van de manier waarop de output van de consolidatie agent wordt gescheiden van het bericht aan de gebruiker (moet met tools worden opgelost)
     #TODO Automatische consolidatie functionaliteit verbeteren

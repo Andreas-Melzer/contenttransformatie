@@ -1,7 +1,6 @@
 import streamlit as st
 from interface.utils.component_loader import load_heavy_components
 from interface.utils.project_manager import get_active_project
-from interface.components.ui_components import display_agent_search_results
 from llm_client.llm_client import json_decode
 import json
 

@@ -30,11 +30,8 @@ def list_documents_callback(tool_result: Dict[str, Any], project):
 
     return json.dumps(all_documents)       
 
-def streamlit_tool_result_callback(tool_result: Dict[str, Any], project: Project) -> Optional[str]:
-    """Callback die de resultaten van een tool verwerkt voor een specifiek project."""
-    function_name = tool_result.get("function_name")
 
-    if function_name == "vector_search":
+def search_results_callback(tool_result: Dict[str, Any], project: Project) -> Optional[str]:
         try:
             documents = json.loads(tool_result.get("output", "[]"))
             if not isinstance(documents, list):
@@ -44,5 +41,3 @@ def streamlit_tool_result_callback(tool_result: Dict[str, Any], project: Project
                 project.upsert_document(doc_id=doc_id)
         except (json.JSONDecodeError, AttributeError):
             pass
-    
-    return None

@@ -2,7 +2,6 @@ import streamlit as st
 import json
 from interface.utils.component_loader import load_heavy_components
 from interface.utils.project_manager import get_active_project
-from interface.components.ui_components import display_agent_search_results
 from llm_client.llm_client import json_decode
 from interface.utils.consolidation_utils import format_consolidated_json
 import pandas as pd
