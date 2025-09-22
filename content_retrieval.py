@@ -25,12 +25,14 @@ doc_store = DocumentStore(
     settings.docstore_folder,
     indexed_metadata_keys=settings.indexed_metadata_keys
 )
-summary_doc_store = DocumentStore(
-    "kme_content_summarized",
-    settings.docstore_folder,
-    indexed_metadata_keys=settings.summary_indexed_metadata_keys
-)
-embedding = VectorStore(embedder=embed, doc_store=summary_doc_store,data_root=settings.docstore_folder)
+# summary_doc_store = DocumentStore(
+#     "kme_content_summarized",
+#     settings.docstore_folder,
+#     indexed_metadata_keys=settings.summary_indexed_metadata_keys
+# )
+embedding = VectorStore(embedder=embed, 
+                        doc_store=doc_store,
+                        data_root=settings.docstore_folder)
 
 def query_document(text: str):
     return embedding.query(text, n_results=10)

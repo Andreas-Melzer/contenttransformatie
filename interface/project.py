@@ -57,11 +57,14 @@ class Project:
         """Constructs the file path for rewrite step data."""
         return self._get_path("_rewrite")
 
+    def get_settings(self):
+        return settings
+    
     @debounce(0.5)
     def save(self):
         """Saves the project's metadata and data to separate files."""
         if not os.path.exists(settings.projects_folder):
-            os.makedirs(settings.projects_folder)
+            os.makedirs(settings.projects_folder,exist_ok=True)
         
         # Save metadata file ({id}.json)
         with open(self._get_path(), "w", encoding="utf-8") as f:

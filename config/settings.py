@@ -100,4 +100,20 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-settings = Settings()
+
+# Use a simpler singleton pattern to ensure only one instance of Settings is created
+class _SettingsSingleton:
+    """
+    A singleton wrapper for the Settings class to ensure only one instance
+    of settings is created and used throughout the application.
+    """
+    _instance: Optional[Settings] = None
+
+    @classmethod
+    def get_instance(cls) -> Settings:
+        if cls._instance is None:
+            cls._instance = Settings()
+        return cls._instance
+
+# Create a global instance of the settings singleton
+settings = _SettingsSingleton.get_instance()
