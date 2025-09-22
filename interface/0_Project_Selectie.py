@@ -9,7 +9,7 @@ from interface.utils.project_manager import create_project, get_all_projects
 from interface.utils.session_state import initialize_session_state
 
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
-mlflow.set_experiment("Contentcreatie")
+mlflow.set_experiment("content")
 mlflow.openai.autolog()
 
 # Pagina Configuratie en Initialisatie

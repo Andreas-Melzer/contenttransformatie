@@ -48,8 +48,6 @@ class VectorSearchTool(ToolBase):
     def _execute(self, queries: Union[str, List[str]], n_results: int = 5) -> str:
         """Searches the VectorStore and returns deduplicated results as a JSON string."""
         query_list = queries if isinstance(queries, list) else [queries]
-        print(f"--- DEBUG: Agent searching for {len(query_list)} queries: {query_list} ---")
-
         best_results = {}
         for query_index, query_text in enumerate(query_list):
             results = self.vector_store.query(query_text=query_text, n_results=n_results)

@@ -45,11 +45,11 @@ class Settings(BaseSettings):
 
     # --- Default Model Selection ---
     llm_model: str = "gpt-5-mini"
-    embedding_model: str = "text-embedding-qwen3-embedding-4b"
+    embedding_model: str = "text-embedding-3-large"
 
     # --- Document Store Settings ---
     raw_doc_store_name: str = "kme_content"
-    summary_doc_store_name: str = "kme_content_summarized"
+    #summary_doc_store_name: str = "kme_content_summarized"
 
     # --- Metadata Indexing Settings ---
     indexed_metadata_keys: List[str] = [

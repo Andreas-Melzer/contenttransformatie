@@ -9,7 +9,7 @@ active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Herschrijven")
 
 # Load components
-_, doc_store, summary_doc_store, vector_store = load_heavy_components()
+_, doc_store, vector_store = load_heavy_components()
 
 st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 4: Herschrijven van Geconsolideerde Content")

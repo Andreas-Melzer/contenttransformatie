@@ -46,7 +46,7 @@ def add_new_documents_to_docstore(
                 "PRODUCT_SUBONDERWERP": row.PRODUCT_SUBONDERWERP,
                 "VRAAG": tax.VRAAG,
             }
-            docs.append(Document(km_id, row.title, row.full_text, metadata))
+            docs.append(KMEDocument(km_id, row.title, row.full_text, metadata))
         else:
             missing.append(km_id)
 
@@ -59,30 +59,33 @@ def add_new_documents_to_docstore(
 def summarize_new_documents(
     *,
     doc_store: DocumentStore,
-    summary_doc_store: DocumentStore,
-    prompt_builder: PromptBuilder,   
-    llm: LLMProcessor,               
-    KMEDocument_cls,                
+    prompt_builder: PromptBuilder,
+    llm: LLMProcessor,
     max_workers: int = 16,
-    start: int = 0,                
-    count: Optional[int] = None,     
+    start: int = 0,
+    count: Optional[int] = None,
     reasoning_effort: str = "low",
     show_progress: bool = True,
 ) -> Dict[str, int]:
     """
-    Threaded + streaming: voegt elk resultaat direct toe aan summary_doc_store.
+    Threaded + streaming: updates each document in doc_store with summary as metadata.
     Eenvoudig, robuust, en snel genoeg voor I/O-bound LLM-calls.
     """
     items = list(doc_store.documents.items())
     end = None if count is None else start + max(0, count)
     items_slice = items[start:end]
 
-    existing = set(summary_doc_store.documents.keys())
-    todo = [(doc_id, doc) for doc_id, doc in items_slice if doc_id not in existing]
+    # Filter documents that haven't been summarized yet (check for summary metadata)
+    todo = []
+    for doc_id, doc in items_slice:
+        # Check if document already has summary metadata
+        if not doc.metadata or "summary" not in doc.metadata:
+            todo.append((doc_id, doc))
+    
     if not todo:
         return {"submitted": 0, "added": 0, "skipped_existing": len(items_slice)}
 
-    def _one(doc_id: str, doc: Document) -> Optional[KMEDocument]:
+    def _one(doc_id: str, doc: KMEDocument) -> Optional[KMEDocument]:
         md = doc.metadata or {}
         prompt = prompt_builder.create_prompt(
             document=doc.content,
@@ -96,7 +99,6 @@ def summarize_new_documents(
         res = llm.process(prompt, reasoning_effort=reasoning_effort)
         out = res.content
 
-        # Optioneel: verifiëren indien beschikbaar
         if hasattr(prompt_builder, "verify_json") and callable(prompt_builder.verify_json):
             if not prompt_builder.verify_json(out):
                 return None
@@ -104,13 +106,16 @@ def summarize_new_documents(
         if not isinstance(out, dict) or "content" not in out:
             return None
 
-        merged_md = {**(out.get("metadata") or {}), **md, "full_text": doc.content}
-        return KMEDocument_cls(
-            id=doc_id,
-            title=getattr(doc, "title", None),
-            content=out["content"],
-            metadata=merged_md,
+        updated_metadata = {**md, "summary": out["content"], "tags": out.get("metadata", {}).get("Tags",{})}
+        
+        updated_doc = KMEDocument(
+            id=doc.id,
+            title=doc.title,
+            content=doc.content,
+            metadata=updated_metadata
         )
+        
+        return updated_doc
 
     added = 0
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
@@ -121,12 +126,12 @@ def summarize_new_documents(
 
         for fut in iterator:
             try:
-                km = fut.result()
+                updated_doc = fut.result()
             except Exception:
-                km = None  # blijf doorgaan zoals je originele 'continue'
+                updated_doc = None  # blijf doorgaan zoals je originele 'continue'
 
-            if km is not None:
-                summary_doc_store.add([km])
+            if updated_doc is not None:
+                doc_store.add([updated_doc])
                 added += 1
 
     return {"submitted": len(todo), "added": added, "skipped_existing": len(items_slice) - len(todo)}

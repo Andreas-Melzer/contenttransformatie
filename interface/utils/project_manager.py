@@ -10,21 +10,21 @@ def load_project(project_id: str) -> Project | None:
     """Laadt een volledig project op basis van zijn ID."""
     try:
         project = Project.from_id(project_id)
-        llm, _, summary_doc_store, vector_store = load_heavy_components()
-        project.agent = initialize_agent_for_project(project, llm, vector_store, summary_doc_store)
-        project.consolidate_agent = initialize_consolidate_agent_for_project(project, llm, vector_store, summary_doc_store)
-        project.rewrite_agent = initialize_rewrite_agent_for_project(project, llm, vector_store, summary_doc_store)
+        llm, doc_store, vector_store = load_heavy_components()
+        project.agent = initialize_agent_for_project(project, llm, vector_store, doc_store)
+        project.consolidate_agent = initialize_consolidate_agent_for_project(project, llm, vector_store, doc_store)
+        project.rewrite_agent = initialize_rewrite_agent_for_project(project, llm, vector_store, doc_store)
         return project
     except FileNotFoundError:
         return None
 
 def create_project(project_id: str, vraag: str):
     """Maakt een nieuw project aan, initialiseert de agent, en slaat het op."""
-    llm, _, summary_doc_store, vector_store = load_heavy_components()
+    llm, doc_store, vector_store = load_heavy_components()
     project = Project(vraag=vraag, subvragen=[], project_id=project_id)
-    project.agent = initialize_agent_for_project(project, llm, vector_store, summary_doc_store)
-    project.consolidate_agent = initialize_consolidate_agent_for_project(project, llm, vector_store, summary_doc_store)
-    project.rewrite_agent = initialize_rewrite_agent_for_project(project, llm, vector_store, summary_doc_store)
+    project.agent = initialize_agent_for_project(project, llm, vector_store, doc_store)
+    project.consolidate_agent = initialize_consolidate_agent_for_project(project, llm, vector_store, doc_store)
+    project.rewrite_agent = initialize_rewrite_agent_for_project(project, llm, vector_store, doc_store)
     project.save()
     st.session_state.projects[project_id] = project
 

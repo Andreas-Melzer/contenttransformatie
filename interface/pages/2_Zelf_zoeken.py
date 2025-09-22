@@ -11,7 +11,7 @@ from interface.project import Project
 active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Zelf zoeken")
 
-_, raw_doc_store, summary_doc_store, vector_store = load_heavy_components()
+_, raw_doc_store, vector_store = load_heavy_components()
 
 
 if "zelfzoeken_rows" not in st.session_state:
@@ -178,7 +178,7 @@ with st.container():
             else:
                 with st.spinner("Zoeken in metadata index..."):
                     results, q_str = taxonomy_search(
-                        summary_doc_store,
+                        raw_doc_store,
                         belastingsoort=belastingsoort,
                         proces_onderwerp=proces_onderwerp or None,
                         product_subonderwerp=product_subonderwerp or None,
@@ -216,7 +216,7 @@ if rows:
             st.rerun()
 
     if getattr(active_project, "selected_doc_id", None):
-        display_kme_document(summary_doc_store,active_project)
+        display_kme_document(raw_doc_store,active_project)
 
 else:
     st.info("Nog geen resultaten. Voer een zoekopdracht uit.")

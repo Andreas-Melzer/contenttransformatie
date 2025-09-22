@@ -102,8 +102,12 @@ class MultiTurnAgent:
                         else:
                             raise ValueError(f"Tool '{function_name}' not found.")
                 except Exception as e:
-                    tool_output = f"An error occurred while executing tool '{function_name}': {e}"
-                    print(tool_output)
+                    error_message = str(e) if str(e) else f"Unknown error of type {type(e).__name__}"
+                    tool_output = f"An error occurred while executing tool '{function_name}': {error_message}"
+                    print(f"Error executing {function_name}: {error_message}")
+                    # Include more exception details for debugging
+                    import traceback
+                    print(f"Exception details: {traceback.format_exc()}")
 
                 self.messages.append({"tool_call_id": tool_call['id'], "role": "tool", "name": function_name, "content": tool_output})
         

@@ -13,7 +13,7 @@ class KMEDocument(Document):
 
         :return: str, The combined title and content for embedding.
         """
-        return f"Title: {self.title}\n\nBelastingsoort: {self.metadata['BELASTINGSOORT']}| Proces: {self.metadata['PROCES_ONDERWERP']}| Product: {self.metadata['PRODUCT_SUBONDERWERP']} \n\n{self.content} \n\n {self.metadata['Tags']}"
+        return f"Title: {self.title}\n\nBelastingsoort: {self.metadata['BELASTINGSOORT']}| Proces: {self.metadata['PROCES_ONDERWERP']}| Product: {self.metadata['PRODUCT_SUBONDERWERP']} \n\n{self.metadata.get('summary',"")} \n\n {self.metadata.get('tags',"")}"
     
     @property
     def doorverwijs_artikel(self) -> bool:

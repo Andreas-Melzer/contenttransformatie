@@ -55,19 +55,14 @@ def load_heavy_components():
         settings.docstore_folder,
         settings.indexed_metadata_keys
     )
-    summary_doc_store = DocumentStore(
-        settings.summary_doc_store_name,
-        settings.docstore_folder,
-        settings.summary_indexed_metadata_keys
-    )
-    vector_store = VectorStore(embedder=embedder, 
-                               doc_store=summary_doc_store,
+    vector_store = VectorStore(embedder=embedder,
+                               doc_store=doc_store,
                                data_root=settings.docstore_folder)
 
-    return llm, doc_store, summary_doc_store, vector_store
+    return llm, doc_store, vector_store
 
 
-def initialize_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, summary_doc_store : DocumentStore) -> MultiTurnAgent:
+def initialize_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, doc_store : DocumentStore) -> MultiTurnAgent:
     """Initialiseert en configureert de agent voor een specifiek project."""
     
     on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
@@ -85,7 +80,7 @@ def initialize_agent_for_project(project: Project, llm: LLMProcessor, vector_sto
         on_result=on_list_documents
     )
     read_tool = ReadDocumentsTool(
-        doc_store=summary_doc_store
+        doc_store=doc_store
     )
 
     agent = MultiTurnAgent(
@@ -96,7 +91,7 @@ def initialize_agent_for_project(project: Project, llm: LLMProcessor, vector_sto
     )
     return agent
     
-def initialize_consolidate_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, summary_doc_store : DocumentStore) -> MultiTurnAgent:
+def initialize_consolidate_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, doc_store : DocumentStore) -> MultiTurnAgent:
     """Initialiseert en configureert de consolidate agent voor een specifiek project."""
     
     on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
@@ -114,7 +109,7 @@ def initialize_consolidate_agent_for_project(project: Project, llm: LLMProcessor
         on_result=on_list_documents
     )
     read_tool = ReadDocumentsTool(
-        doc_store=summary_doc_store
+        doc_store=doc_store
     )
 
     agent = MultiTurnAgent(
@@ -125,7 +120,7 @@ def initialize_consolidate_agent_for_project(project: Project, llm: LLMProcessor
     )
     return agent
     
-def initialize_rewrite_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, summary_doc_store : DocumentStore) -> MultiTurnAgent:
+def initialize_rewrite_agent_for_project(project: Project, llm: LLMProcessor, vector_store: VectorStore, doc_store : DocumentStore) -> MultiTurnAgent:
     """Initialiseert en configureert de rewrite agent voor een specifiek project."""
     
     on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)
@@ -143,7 +138,7 @@ def initialize_rewrite_agent_for_project(project: Project, llm: LLMProcessor, ve
         on_result=on_list_documents
     )
     read_tool = ReadDocumentsTool(
-        doc_store=summary_doc_store
+        doc_store=doc_store
     )
 
     agent = MultiTurnAgent(

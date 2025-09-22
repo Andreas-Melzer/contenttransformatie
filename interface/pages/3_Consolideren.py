@@ -12,7 +12,7 @@ active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Consolideren")
 
 # Load components
-_, doc_store, summary_doc_store, vector_store = load_heavy_components()
+_, doc_store, vector_store = load_heavy_components()
 
 # Initialize session state variables
 if 'consolidate_selected_docs' not in st.session_state:
@@ -50,7 +50,7 @@ with tab1:
             # Display selected documents in a table
             docs_data = []
             for doc_id, relevance in selected_documents_with_relevance.items():
-                doc = summary_doc_store.documents.get(doc_id)
+                doc = doc_store.documents.get(doc_id)
                 if doc:
                     meta = doc.metadata
                     docs_data.append({

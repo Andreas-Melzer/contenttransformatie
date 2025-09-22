@@ -6,7 +6,7 @@ from interface.components.ui_components import display_agent_search_results
 active_project =get_active_project()
 st.set_page_config(layout="wide", page_title="Zoeken en selecteren")
 
-_, doc_store, summary_doc_store, vector_store = load_heavy_components()
+_, doc_store, vector_store = load_heavy_components()
 
 agent = active_project.agent
 
@@ -76,7 +76,7 @@ all_found_documents = {**active_project.agent_found_documents, **active_project.
 if not all_found_documents:
     st.info("Er zijn nog geen documenten gevonden. Stel een vraag in de chat of gebruik 'Zelf zoeken' om te beginnen.")
 else:
-    display_agent_search_results(summary_doc_store, active_project, all_found_documents)
+    display_agent_search_results(doc_store, active_project, all_found_documents)
 
 if agent and active_project.messages and active_project.messages[-1]["role"] == "user":
     with st.sidebar:
