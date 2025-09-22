@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+from azure.ai.ml import MLClient
+from azure.identity import DefaultAzureCredential
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,6 +20,10 @@ class Settings(BaseSettings):
     azure_eus2_endpoint: Optional[str] = Field(None, validation_alias="AZURE_OPENAI_ENDPOINT_EUS2")
     openrouter_api_key: Optional[str] = Field(None, validation_alias="OPENROUTER_API_KEY")
 
+    azure_subscription_id: Optional[str] = Field(None, validation_alias="AZURE_SUBSCRIPTION_ID")
+    azure_resource_group: Optional[str] = Field(None, validation_alias="AZURE_RESOURCE_GROUP")
+    azure_workspace_name:Optional[str] = Field(None, validation_alias="AZURE_WORKSPACE")
+    mlflow_location:Optional[str] = Field(None, validation_alias="MLFLOW_LOCATION")
     # --- Path Settings ---
     base_dir: Path = Path(__file__).resolve().parent
     data_root: Path = Field(base_dir / "data", validation_alias="DATA_ROOT")
@@ -26,7 +32,13 @@ class Settings(BaseSettings):
     docstore_folder: Path = Field(base_dir/ "data"/ "docstores", validation_alias="DOCSTORE_FOLDER")
     # --- Client Configurations (as dictionaries) ---
     clients: Dict[str, Dict[str, Any]] = Field(default_factory=dict, exclude=True)
-
+    # ml_client = None 
+    # ml_tracking_id  =None 
+    
+    # if azure_subscription_id and azure_resource_group and azure_workspace_name:
+    #     ml_client = MLClient(DefaultAzureCredential(), azure_subscription_id, azure_resource_group, azure_workspace_name)
+    #     ml_tracking_id = ml_client.workspaces.get(azure_workspace_name).mlflow_tracking_uri
+        
     # --- Model to Client Mapping ---
     llm_client_map: Dict[str, str] = {
         "gpt-4.1-mini": "azure",
