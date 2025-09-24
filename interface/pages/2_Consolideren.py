@@ -22,7 +22,7 @@ if 'consolidated_text' not in st.session_state:
     st.session_state.consolidated_text = active_project.consolidated_text or {}
     
 st.title(f"Project: \"{active_project.vraag}\"")
-st.header("Stap 3: Consolideren van Documenten")
+st.header("Stap 2: Consolideren van Documenten")
 
 # Create tabs for different sections
 tab1, tab2, tab3 = st.tabs(["Document Selectie", "Consolidatie Agent", "Consolidatie Resultaat"])
@@ -55,39 +55,39 @@ with tab1:
                     meta = doc.metadata
                     docs_data.append({
                         'km_nummer': doc_id,
-                        'belastingsoort': meta.get('BELASTINGSOORT', 'N/A'),
-                        'vraag': meta.get('VRAAG', 'N/A'),
-                        'proces': meta.get('PROCES_ONDERWERP', 'N/A'),
-                        'product': meta.get('PRODUCT_SUBONDERWERP', 'N/A'),
-                        'relevantie': relevance
+                        'Belastingsoort': meta.get('BELASTINGSOORT', 'N/A'),
+                        'Vraag': meta.get('VRAAG', 'N/A'),
+                        'Proces': meta.get('PROCES_ONDERWERP', 'N/A'),
+                        'Product': meta.get('PRODUCT_SUBONDERWERP', 'N/A'),
+                        'Relevante': relevance
                     })
             
             if docs_data:
 
                 df = pd.DataFrame(docs_data)
                 # Use a different session key to avoid conflicts
-                display_kme_document_grid_with_selector(df, active_project, session_key="consolidate_selected_docs")
+                display_kme_document_grid_with_selector(df, active_project, session_key="consolidate_selected_docs",selectable=False)
                 
-                st.subheader("Geselecteerde Documenten voor Consolidatie")
-                st.write(f"Aantal geselecteerde documenten: {len(st.session_state.consolidate_selected_docs)}")
+                # st.subheader("Geselecteerde Documenten voor Consolidatie")
+                # st.write(f"Aantal geselecteerde documenten: {len(st.session_state.consolidate_selected_docs)}")
                 
-                # Button to update the saved selection
-                if st.button("Update Selectie", type="primary"):
-                    active_project.saved_selection_consolidate = st.session_state.consolidate_selected_docs
-                    st.success("Selectie bijgewerkt!")
-                    st.rerun()
+                # # Button to update the saved selection
+                # if st.button("Update Selectie", type="primary"):
+                #     active_project.saved_selection_consolidate = st.session_state.consolidate_selected_docs
+                #     st.success("Selectie bijgewerkt!")
+                #     st.rerun()
 
 # Tab 2: Consolidation Agent
 with tab2:
     st.subheader("Consolidatie Agent")
     
     # Check if we have selected documents
-    if not st.session_state.consolidate_selected_docs:
+    if not  active_project.saved_selection_consolidate:
         st.info("Selecteer eerst documenten in de 'Document Selectie' tab.")
     else:
         # Create a dictionary with document IDs and their relevance scores
         selected_documents_with_relevance = {}
-        for doc_id in st.session_state.consolidate_selected_docs:
+        for doc_id in  active_project.saved_selection_consolidate:
             # Get relevance from either agent_found or self_found documents
             relevance = active_project.agent_found_documents.get(doc_id) or active_project.self_found_documents.get(doc_id, 0)
             selected_documents_with_relevance[doc_id] = relevance

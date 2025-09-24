@@ -8,6 +8,7 @@ from interface.components.zelf_zoeken_component import display_zelf_zoeken
 from interface.components.kme_document_grid import display_kme_document_grid_with_selector
 from interface.components.kme_document_viewer import display_kme_document
 from interface.project import Project
+from interface.components.display_selections_ids import display_selection_ids
 
 def display_agent_search_results(doc_store, project: Project, document_dict : Dict[str,int]):
     """Rendert de documententabel met AG Grid voor een interactieve ervaring."""
@@ -20,15 +21,15 @@ def display_agent_search_results(doc_store, project: Project, document_dict : Di
             meta = doc.metadata
             docs_data.append({
                 'km_nummer': doc_id,
-                'belastingsoort': meta.get('BELASTINGSOORT', 'N/A'),
-                'vraag': meta.get('VRAAG', 'N/A'),
-                'proces': meta.get('PROCES_ONDERWERP', 'N/A'),
-                'product': meta.get('PRODUCT_SUBONDERWERP', 'N/A'),
-                'relevantie': relevance
+                'Belastingsoort': meta.get('BELASTINGSOORT', 'N/A'),
+                'Vraag': meta.get('VRAAG', 'N/A'),
+                'Proces': meta.get('PROCES_ONDERWERP', 'N/A'),
+                'Product': meta.get('PRODUCT_SUBONDERWERP', 'N/A'),
+                'Relevantie': relevance
             })
 
     if not docs_data:
-        st.info("Er zijn geen documenten in de shortlist om weer te geven.")
+        st.info("Er zijn geen documenten om")
         return
 
     df = pd.DataFrame(docs_data)
@@ -43,43 +44,26 @@ def display_agent_search_results(doc_store, project: Project, document_dict : Di
     with col2:
         if st.button(f"Verwijder Selectie ({len(st.session_state.selected_docs)})",use_container_width=True):
             for doc_id in st.session_state.selected_docs:
-                # Remove from both agent and self found documents
                 if doc_id in project.agent_found_documents:
                     del project.agent_found_documents[doc_id]
                 if doc_id in project.self_found_documents:
                     del project.self_found_documents[doc_id]
             st.session_state.selected_docs = []
             st.rerun()
+    # geselecteerde documenten tonen
+    st.subheader("Geselecteerde Documenten voor consolidatie")
+    display_selection_ids(project.saved_selection_consolidate)
+    
 
-    if project.selected_doc_id:
-         display_kme_document(doc_store, project, close_button_key="agent_close_doc")
 
-    st.subheader("Geselecteerde Documenten")
-    st.write(project.saved_selection_consolidate)
+
+    
 active_project =get_active_project()
 st.set_page_config(layout="wide", page_title="Zoeken en selecteren")
 
 _, doc_store, vector_store = load_heavy_components()
 
 agent = active_project.agent
-
-def handle_list_documents(tool_call, project):
-    """
-    Callback function for the list_selected_documents tool.
-    Returns the list of all selected documents (both agent-found and user-found).
-    """
-    # Get the function name and arguments
-    function_name = tool_call['function']['name']
-    args = json.loads(tool_call['function']['arguments'])
-
-    # Get all selected documents
-    all_documents = {
-        "agent_found": list(project.agent_found_documents.keys()),
-        "user_found": list(project.self_found_documents.keys())
-    }
-
-    # Return the result as a JSON string
-    return json.dumps(all_documents)
 
 if 'selected_doc_ids' not in st.session_state:
     st.session_state.selected_doc_ids = []
@@ -134,7 +118,9 @@ with tab1:
         st.info("Er zijn nog geen documenten gevonden. Stel een vraag in de chat of gebruik 'Zelf zoeken' om te beginnen.")
     else:
         display_agent_search_results(doc_store, active_project, all_found_documents)
-
+        
+    if active_project.selected_doc_id:
+        display_kme_document(doc_store, active_project, close_button_key="agent_close_doc")
 with tab2:
     # Display the Zelf Zoeken component
     display_zelf_zoeken()

@@ -119,13 +119,13 @@ def display_zelf_zoeken():
 
             rows.append({
                 "km_nummer": km_id,
-                "titel": title,
-                "vraag": meta.get("VRAAG", ""),
-                "belastingsoort": meta.get("BELASTINGSOORT", ""),
-                "proces": meta.get("PROCES_ONDERWERP", ""),
-                "product": meta.get("PRODUCT_SUBONDERWERP", ""),
-                "score": score if score is not None else "",
-                "snippet": snippet,
+                #"titel": title,
+                "Vraag": meta.get("VRAAG", ""),
+                "Belastingsoort": meta.get("BELASTINGSOORT", ""),
+                "Proces": meta.get("PROCES_ONDERWERP", ""),
+                "Product": meta.get("PRODUCT_SUBONDERWERP", ""),
+                #"score": score if score is not None else "",
+                #"snippet": snippet,
             })
         return rows
 
@@ -138,9 +138,6 @@ def display_zelf_zoeken():
         elif hasattr(results, 'empty') and results.empty:
             results = []
         return results, q
-
-    st.title(f"Project: \"{active_project.vraag}\"")
-    st.header("Zelf zoeken")
 
     with st.container():
         mode = st.radio("Zoektype", ["Vector search", "Taxonomie search"], horizontal=True, index=0 if st.session_state.zelfzoeken_mode=="Vector search" else 1)

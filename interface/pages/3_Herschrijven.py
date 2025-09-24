@@ -12,7 +12,7 @@ st.set_page_config(layout="wide", page_title="Herschrijven")
 _, doc_store, vector_store = load_heavy_components()
 
 st.title(f"Project: \"{active_project.vraag}\"")
-st.header("Stap 4: Herschrijven van Geconsolideerde Content")
+st.header("Stap 3: Herschrijven van Geconsolideerde Content")
 
 # Check if we have consolidated content
 if not active_project.consolidated_json:
