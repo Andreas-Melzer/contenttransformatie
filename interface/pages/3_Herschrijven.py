@@ -4,12 +4,17 @@ from interface.utils.project_manager import get_active_project
 from llm_client.llm_client import json_decode
 import json
 from interface.implementations.tools.save_rewritten_json_tool import SaveRewrittenJsonTool
+from interface.components.clear_agent_messages import display_clear_agent_messages_button
+from interface.components.agent_sidebar_component import display_agent_sidebar
 
 active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Herschrijven")
 
 # Load components
 _, doc_store, vector_store = load_heavy_components()
+
+# Display agent sidebar
+display_agent_sidebar(active_project, agent_name="rewrite_agent")
 
 st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 3: Herschrijven van Geconsolideerde Content")
@@ -19,7 +24,7 @@ if not active_project.consolidated_json:
     st.info("Er is nog geen geconsolideerde content. Ga terug naar de consolidatie stap om content te consolideren.")
 else:
     # Create tabs for different sections
-    tab1, tab2, tab3 = st.tabs(["Geconsolideerde Content", "Herschrijf Agent", "Herschreven Content"])
+    tab1, tab2 = st.tabs(["Geconsolideerde Content", "Herschreven Content"])
     
     # Tab 1: Show consolidated content
     with tab1:
@@ -30,61 +35,20 @@ else:
             st.json(consolidated_data)
         else:
             st.info("Er is nog geen geconsolideerde content beschikbaar.")
-    
-    # Tab 2: Rewrite agent
-    with tab2:
-        st.subheader("Herschrijf Agent")
-        
-        # Display chat interface
-        chat_container = st.container(height=400)
-        with chat_container:
-            for message in active_project.rewrite_messages:
-                if message["role"] == "user":
-                    with st.chat_message("user"):
-                        st.markdown(message["content"])
-                elif message["role"] == "assistant" and message.get("content"):
-                    with st.chat_message("assistant"):
-                        st.markdown(message["content"])
-        
-        # Chat input
-        if prompt := st.chat_input("Stel uw vraag over herschrijven..."):
-            # Add user message to history
-            active_project.rewrite_messages = active_project.rewrite_messages + [{"role": "user", "content": prompt}]
-            st.rerun()
-        
-        # Process agent response if there's a user message
-        if (active_project.rewrite_agent and
-            active_project.rewrite_messages and
-            active_project.rewrite_messages[-1]["role"] == "user"):
             
-            with st.chat_message("assistant"):
-                with st.spinner("Herschrijf agent is aan het werk..."):
-                    # Prepare the prompt with consolidated content
-                    agent = active_project.rewrite_agent
-                    agent.messages = active_project.rewrite_messages
-                    query = active_project.rewrite_messages[-1]["content"]
-                    
-                    # Process the chat
-                    final_response = agent.chat(
-                        query=query,
-                        max_tool_turns=15,
-                        hoofdvraag = active_project.vraag,
-                        subvragen = active_project.subvragen,
-                        geconsolideerde_tekst = active_project.consolidated_json
-                    )
-                    
-                    active_project.rewrite_messages = agent.messages
-                    st.rerun()
-        
-        # Button to start automatic rewriting
-        if st.button("Start Automatisch Herschrijven", type="primary"):
-            # Add a message to trigger rewriting
-            rewrite_prompt = f"Ik wil graag de geconsolideerde content herschrijven voor de vraag: \"{active_project.vraag}\"."
-            active_project.rewrite_messages = active_project.rewrite_messages + [{"role": "user", "content": rewrite_prompt}]
-            st.rerun()
+# Add button to clear agent messages in the sidebar
+with st.sidebar:
+    display_clear_agent_messages_button(active_project, "rewrite_agent")
+
+    # Button to start automatic rewriting
+    if st.button("Start Automatisch Herschrijven", type="primary"):
+        # Add a message to trigger rewriting
+        rewrite_prompt = f"Ik wil graag de geconsolideerde content herschrijven voor de vraag: \"{active_project.vraag}\"."
+        active_project.rewrite_messages = active_project.rewrite_messages + [{"role": "user", "content": rewrite_prompt}]
+        st.rerun()
     
     # Tab 3: Show rewritten content
-    with tab3:
+    with tab2:
         st.subheader("Herschreven Content")
         if active_project.rewritten_text:
             st.markdown(active_project.rewritten_text)

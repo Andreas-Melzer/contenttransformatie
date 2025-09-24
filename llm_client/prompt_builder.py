@@ -73,15 +73,19 @@ class PromptBuilder:
             
             history = all_args.pop('history', None)
             messages = history[:] if history else []
-            has_system_message = any(msg.get('role') == 'system' for msg in messages)
 
-            if not has_system_message:
-                system_data = {k: v for k, v in all_args.items() if k in system_vars}
-                if instance_self.system_template:
-                    rendered_system = instance_self.system_template.render(json_schema=instance_self.schema_str, **system_data)
-                    messages.insert(0, {"role": "system", "content": rendered_system})
-                else:
-                    messages.insert(0, {"role": "system", "content": "You are an helpfull assisten"})
+            # Always update the system message with the latest parameters
+            system_data = {k: v for k, v in all_args.items() if k in system_vars}
+            if instance_self.system_template:
+                rendered_system = instance_self.system_template.render(json_schema=instance_self.schema_str, **system_data)
+            else:
+                rendered_system = "You are an helpfull assisten"
+
+            # Remove any existing system messages
+            messages = [msg for msg in messages if msg.get('role') != 'system']
+
+            # Insert the updated system message at the beginning
+            messages.insert(0, {"role": "system", "content": rendered_system})
 
             user_data = {k: v for k, v in all_args.items() if k in user_vars}
             rendered_user = instance_self.user_template.render(json_schema=instance_self.schema_str, **user_data)

@@ -7,12 +7,17 @@ from interface.utils.consolidation_utils import format_consolidated_json
 import pandas as pd
 from interface.implementations.tools.save_consolidated_json_tool import SaveConsolidatedJsonTool
 from interface.components.kme_document_grid import display_kme_document_grid_with_selector
+from interface.components.clear_agent_messages import display_clear_agent_messages_button
+from interface.components.agent_sidebar_component import display_agent_sidebar
                 
 active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Consolideren")
 
 # Load components
 _, doc_store, vector_store = load_heavy_components()
+
+# Display agent sidebar
+display_agent_sidebar(active_project, agent_name="consolidate_agent",doc_store=doc_store)
 
 # Initialize session state variables
 if 'consolidate_selected_docs' not in st.session_state:
@@ -25,7 +30,7 @@ st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 2: Consolideren van Documenten")
 
 # Create tabs for different sections
-tab1, tab2, tab3 = st.tabs(["Document Selectie", "Consolidatie Agent", "Consolidatie Resultaat"])
+tab1, tab2 = st.tabs(["Document Selectie", "Consolidatie Resultaat"])
 
 # Tab 1: Document Selection
 with tab1:
@@ -67,98 +72,21 @@ with tab1:
                 df = pd.DataFrame(docs_data)
                 # Use a different session key to avoid conflicts
                 display_kme_document_grid_with_selector(df, active_project, session_key="consolidate_selected_docs",selectable=False)
-                
-                # st.subheader("Geselecteerde Documenten voor Consolidatie")
-                # st.write(f"Aantal geselecteerde documenten: {len(st.session_state.consolidate_selected_docs)}")
-                
-                # # Button to update the saved selection
-                # if st.button("Update Selectie", type="primary"):
-                #     active_project.saved_selection_consolidate = st.session_state.consolidate_selected_docs
-                #     st.success("Selectie bijgewerkt!")
-                #     st.rerun()
 
-# Tab 2: Consolidation Agent
-with tab2:
-    st.subheader("Consolidatie Agent")
-    
-    # Check if we have selected documents
-    if not  active_project.saved_selection_consolidate:
-        st.info("Selecteer eerst documenten in de 'Document Selectie' tab.")
-    else:
-        # Create a dictionary with document IDs and their relevance scores
-        selected_documents_with_relevance = {}
-        for doc_id in  active_project.saved_selection_consolidate:
-            # Get relevance from either agent_found or self_found documents
-            relevance = active_project.agent_found_documents.get(doc_id) or active_project.self_found_documents.get(doc_id, 0)
-            selected_documents_with_relevance[doc_id] = relevance
-        
-        # Display chat interface
-        chat_container = st.container(height=400)
-        with chat_container:
-            for message in active_project.consolidate_messages:
-                if message["role"] == "user":
-                    with st.chat_message("user"):
-                        st.markdown(message["content"])
-                elif message["role"] == "assistant" and message.get("content"):
-                    with st.chat_message("assistant"):
-                        st.markdown(message["content"])
-        
-        # Display scratchpad
-        with st.expander("Kladblok van de Consolidatie Agent"):
-            scratchpad = active_project.consolidate_agent.scratchpad if active_project.consolidate_agent else []
-            if not scratchpad:
-                st.caption("Het kladblok is leeg.")
-            else:
-                for task in scratchpad:
-                    completed = task.get('completed', False)
-                    task_text = task.get('task', 'N/A')
-                    st.markdown(f"✅ ~~{task_text}~~" if completed else f"☐ {task_text}")
-        
-        # Chat input
-        if prompt := st.chat_input("Stel uw vraag over consolidatie..."):
-            # Add user message to history
-            active_project.consolidate_messages = active_project.consolidate_messages + [{"role": "user", "content": prompt}]
-            st.rerun()
-        
-        # Process agent response if there's a user message
-        if (active_project.consolidate_agent and
-            active_project.consolidate_messages and
-            active_project.consolidate_messages[-1]["role"] == "user"):
-            
-            with st.chat_message("assistant"):
-                with st.spinner("Consolidatie agent is aan het werk..."):
-                    # Prepare the prompt with selected documents
-                    agent = active_project.consolidate_agent
-                    agent.messages = active_project.consolidate_messages
-                    query = active_project.consolidate_messages[-1]["content"]
-                    
-                    docs = {}
-                    for id, score in selected_documents_with_relevance.items():
-                        docs[id] = doc_store.documents[id].content
-                        
-                    # Process the chat
-                    final_response = agent.chat(
-                        query=query,
-                        max_tool_turns=15,
-                        hoofdvraag = active_project.vraag ,
-                        subvragen = active_project.subvragen,
-                        geconsolideerde_tekst = active_project.consolidated_json,
-                        selected_documents=docs
-                    )
-                    
-                    active_project.consolidate_messages = agent.messages
-                    
-                    st.rerun()
-        
-        # Button to start automatic consolidation
-        if st.button("Start Automatische Consolidatie", type="primary"):
-            # Add a message to trigger consolidation
-            consolidation_prompt = f"Ik wil graag de geselecteerde documenten consolideren voor de vraag: \"{active_project.vraag}\"."
-            active_project.consolidate_messages = active_project.consolidate_messages + [{"role": "user", "content": consolidation_prompt}]
-            st.rerun()
+
+# Add button to clear agent messages in the sidebar
+with st.sidebar:
+    display_clear_agent_messages_button(active_project, "consolidate_agent")
+
+    # Button to start automatic consolidation
+    if st.button("Start Automatische Consolidatie", type="primary"):
+        # Add a message to trigger consolidation
+        consolidation_prompt = f"Ik wil graag de geselecteerde documenten consolideren voor de vraag: \"{active_project.vraag}\"."
+        active_project.consolidate_messages = active_project.consolidate_messages + [{"role": "user", "content": consolidation_prompt}]
+        st.rerun()
 
 # Tab 3: Consolidation Result
-with tab3:
+with tab2:
     # Display consolidated text as Markdown
     st.markdown("### Geconsolideerde Tekst")
     consolidated_markdown = format_consolidated_json(active_project.consolidated_json)

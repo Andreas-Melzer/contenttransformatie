@@ -9,6 +9,8 @@ from interface.components.kme_document_grid import display_kme_document_grid_wit
 from interface.components.kme_document_viewer import display_kme_document
 from interface.project import Project
 from interface.components.display_selections_ids import display_selection_ids
+from interface.components.clear_agent_messages import display_clear_agent_messages_button
+from interface.components.agent_sidebar_component import display_agent_sidebar
 
 def display_agent_search_results(doc_store, project: Project, document_dict : Dict[str,int]):
     """Rendert de documententabel met AG Grid voor een interactieve ervaring."""
@@ -70,37 +72,8 @@ if 'selected_doc_ids' not in st.session_state:
 if 'aggrid_data' not in st.session_state:
     st.session_state.aggrid_data = None
 
-with st.sidebar:
-    st.title("Zoek agent")
-    st.write("Stel hier vervolgvragen om relevante documenten te vinden.")
-    st.divider()
-
-    chat_container = st.container(height=300)
-    with chat_container:
-        for message in active_project.messages:
-            if message["role"] == "user":
-                with st.chat_message("user"):
-                    st.markdown(message["content"])
-            elif message["role"] == "assistant" and message.get("content"):
-                with st.chat_message("assistant"):
-                    st.markdown(message["content"])
-
-    if prompt := st.chat_input("Stel uw vraag..."):
-        active_project.messages = active_project.messages + [{"role": "user", "content": prompt}]
-        active_project.selected_doc_id = None
-        st.session_state.selected_doc_ids = []
-        st.rerun()
-
-    st.divider()
-    with st.expander("Kladblok van de Agent"):
-        scratchpad = active_project.scratchpad
-        if not scratchpad:
-            st.caption("Het kladblok is leeg.")
-        else:
-            for task in scratchpad:
-                completed = task.get('completed', False)
-                task_text = task.get('task', 'N/A')
-                st.markdown(f"✅ ~~{task_text}~~" if completed else f"☐ {task_text}")
+# Display agent sidebar
+display_agent_sidebar(active_project, agent_name="agent")
 
 st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 1: Zoeken en Selecteren van Documenten")
@@ -141,5 +114,10 @@ if agent and active_project.messages and active_project.messages[-1]["role"] == 
             
                 active_project.messages = agent.messages
                 active_project.scratchpad = agent.scratchpad
+
     st.session_state.selected_doc_ids = []
     st.rerun()
+
+# Add button to clear agent messages in the sidebar
+with st.sidebar:
+    display_clear_agent_messages_button(active_project, "agent")
