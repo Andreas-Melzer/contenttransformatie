@@ -6,7 +6,7 @@ from pandas import DataFrame
 
 
 
-def display_kme_document_grid_with_selector(df:DataFrame, project:Project, session_key="selected_docs"):
+def display_kme_document_grid_with_selector(df:DataFrame, project:Project, session_key="selected_docs", grid_key="document_grid"):
     df['double_clicked_id'] = ''
 
     onCellDoubleClicked = JsCode("""
@@ -39,7 +39,7 @@ def display_kme_document_grid_with_selector(df:DataFrame, project:Project, sessi
         allow_unsafe_jscode=True,
         show_download_button=True,
         editable=True,
-        key='document_grid'
+        key=grid_key
     )
 
     returned_df = grid_response['data']

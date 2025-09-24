@@ -1,8 +1,61 @@
 import streamlit as st
 import json
+import pandas as pd
+from typing import Dict
 from interface.utils.component_loader import load_heavy_components
 from interface.utils.project_manager import get_active_project
-from interface.components.ui_components import display_agent_search_results
+from interface.components.zelf_zoeken_component import display_zelf_zoeken
+from interface.components.kme_document_grid import display_kme_document_grid_with_selector
+from interface.components.kme_document_viewer import display_kme_document
+from interface.project import Project
+
+def display_agent_search_results(doc_store, project: Project, document_dict : Dict[str,int]):
+    """Rendert de documententabel met AG Grid voor een interactieve ervaring."""
+    col1, col2,_ =  st.columns([1, 1,10])
+
+    docs_data = []
+    for doc_id, relevance in document_dict.items():
+        doc = doc_store.documents.get(doc_id)
+        if doc:
+            meta = doc.metadata
+            docs_data.append({
+                'km_nummer': doc_id,
+                'belastingsoort': meta.get('BELASTINGSOORT', 'N/A'),
+                'vraag': meta.get('VRAAG', 'N/A'),
+                'proces': meta.get('PROCES_ONDERWERP', 'N/A'),
+                'product': meta.get('PRODUCT_SUBONDERWERP', 'N/A'),
+                'relevantie': relevance
+            })
+
+    if not docs_data:
+        st.info("Er zijn geen documenten in de shortlist om weer te geven.")
+        return
+
+    df = pd.DataFrame(docs_data)
+    display_kme_document_grid_with_selector(df, project, session_key="selected_docs", grid_key="agent_grid")
+
+    with col1:
+        if st.button(f"Selectie Opslaan ({len(st.session_state.selected_docs)})", type="primary",use_container_width=True):
+            project.saved_selection_consolidate = st.session_state.selected_docs
+            st.success(f"{len(st.session_state.selected_docs)} documenten opgeslagen voor de volgende stap.")
+            st.rerun()
+
+    with col2:
+        if st.button(f"Verwijder Selectie ({len(st.session_state.selected_docs)})",use_container_width=True):
+            for doc_id in st.session_state.selected_docs:
+                # Remove from both agent and self found documents
+                if doc_id in project.agent_found_documents:
+                    del project.agent_found_documents[doc_id]
+                if doc_id in project.self_found_documents:
+                    del project.self_found_documents[doc_id]
+            st.session_state.selected_docs = []
+            st.rerun()
+
+    if project.selected_doc_id:
+         display_kme_document(doc_store, project, close_button_key="agent_close_doc")
+
+    st.subheader("Geselecteerde Documenten")
+    st.write(project.saved_selection_consolidate)
 active_project =get_active_project()
 st.set_page_config(layout="wide", page_title="Zoeken en selecteren")
 
@@ -67,15 +120,24 @@ with st.sidebar:
 
 st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 1: Zoeken en Selecteren van Documenten")
-st.subheader("Gevonden Documenten")
 
-# Combine agent and user found documents
-all_found_documents = {**active_project.agent_found_documents, **active_project.self_found_documents}
+# Create tabs for different search methods
+tab1, tab2 = st.tabs(["Agent Zoeken", "Zelf Zoeken"])
 
-if not all_found_documents:
-    st.info("Er zijn nog geen documenten gevonden. Stel een vraag in de chat of gebruik 'Zelf zoeken' om te beginnen.")
-else:
-    display_agent_search_results(doc_store, active_project, all_found_documents)
+with tab1:
+    st.subheader("Gevonden Documenten")
+
+    all_found_documents = {**active_project.agent_found_documents, **active_project.self_found_documents}
+
+    #documenten grid tonen
+    if not all_found_documents:
+        st.info("Er zijn nog geen documenten gevonden. Stel een vraag in de chat of gebruik 'Zelf zoeken' om te beginnen.")
+    else:
+        display_agent_search_results(doc_store, active_project, all_found_documents)
+
+with tab2:
+    # Display the Zelf Zoeken component
+    display_zelf_zoeken()
 
 if agent and active_project.messages and active_project.messages[-1]["role"] == "user":
     with st.sidebar:

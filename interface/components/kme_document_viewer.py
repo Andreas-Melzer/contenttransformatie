@@ -2,7 +2,7 @@ from llm_client.document_vector_store import DocumentStore
 from interface.project import Project
 import streamlit as st
 
-def display_kme_document(doc_store:DocumentStore, project: Project):
+def display_kme_document(doc_store:DocumentStore, project: Project, close_button_key="close_document"):
     """Rendert de detailweergave voor een geselecteerd document binnen een project."""
     if 'selected_docs' not in st.session_state:
         st.session_state.selected_docs = []
@@ -30,7 +30,7 @@ def display_kme_document(doc_store:DocumentStore, project: Project):
             )
         with st.expander("Samenvatting / content"):
             st.markdown(getattr(doc, "content", "") or "")
-        if st.button("Sluit Document"):
+        if st.button("Sluit Document", key=close_button_key):
             project.selected_doc_id = None
             st.session_state.zelfzoeken_just_closed_viewer = True
             st.rerun()
