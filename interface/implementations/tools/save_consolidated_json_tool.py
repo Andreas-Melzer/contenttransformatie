@@ -34,10 +34,7 @@ class SaveConsolidatedJsonTool(ToolBase):
                         "type": "object",
                         "properties": {
                             "tekst_fragment": {"type": "string"},
-                            "bron_km": {
-                                "type": "array",
-                                "items": {"type": "string"}
-                            }
+                            "bron_km": {"type": "string"}
                         },
                         "required": ["tekst_fragment", "bron_km"]
                     }
@@ -54,10 +51,6 @@ class SaveConsolidatedJsonTool(ToolBase):
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        # "project_id": {
-                        #     "type": "string",
-                        #     "description": "The unique identifier of the project."
-                        # },
                         "hoofdvraag": {
                             "type": "string",
                             "description": "De hoofdvraag van het project."
@@ -113,7 +106,6 @@ class SaveConsolidatedJsonTool(ToolBase):
                         }
                     },
                     "required": [
-                        "project_id",
                         "hoofdvraag",
                         "consolidatie",
                         "subvragen_consolidatie",

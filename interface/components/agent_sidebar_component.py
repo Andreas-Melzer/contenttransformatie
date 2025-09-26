@@ -1,39 +1,76 @@
 import streamlit as st
 from interface.project import Project
+from interface.utils.rewrite_utils import enrich_consolidation
+# Central configuration dictionary for all agent types
+AGENT_CONFIG = {
+    "agent": {
+        "agent_attr": "agent",
+        "messages_attr": "messages",
+        "title": "Zoek agent",
+        "description": "Stel hier vervolgvragen om relevante documenten te vinden.",
+        "placeholder": "Stel uw vraag...",
+        "chat_handler": lambda agent, query, project, doc_store: agent.chat(
+            query=query,
+            hoofdvraag=project.vraag,
+            subvragen=project.subvragen,
+            max_tool_turns=15
+        )
+    },
+    "consolidate_agent": {
+        "agent_attr": "consolidate_agent",
+        "messages_attr": "consolidate_messages",
+        "title": "Consolidatie Agent",
+        "description": "Stel hier vragen over het consolidatieproces.",
+        "placeholder": "Stel uw vraag over consolidatie...",
+        "chat_handler": lambda agent, query, project, doc_store: agent.chat(
+            query=query,
+            hoofdvraag=project.vraag,
+            subvragen=project.subvragen,
+            #geconsolideerde_tekst=project.consolidated_json,
+            selected_documents={
+                doc_id:  doc_store.documents[doc_id]
+                for doc_id in project.saved_selection_consolidate
+            },
+            max_tool_turns=15
+        )
+    },
+    "rewrite_agent": {
+        "agent_attr": "rewrite_agent",
+        "messages_attr": "rewrite_messages",
+        "title": "Herschrijf Agent",
+        "description": "Stel hier vragen over het herschrijfproces.",
+        "placeholder": "Stel uw vraag over herschrijven...",
+        "chat_handler": lambda agent, query, project, doc_store: agent.chat(
+            query=query,
+            hoofdvraag=project.vraag,
+            subvragen=project.subvragen,
+            geconsolideerde_tekst= enrich_consolidation(project.consolidated_json,doc_store),
+            max_tool_turns=15
+        )
+    }
+}
 
-def display_agent_sidebar(project: Project, agent_name: str = "agent",doc_store=None):
+def display_agent_sidebar(project: Project, agent_name: str = "agent", doc_store=None):
     """
-    Displays a generic agent sidebar component that can be used across different pages.
+    Displays a generic, data-driven agent sidebar component.
 
-    Args:
-        project: The current project
-        agent_name: The name of the agent to use ('agent', 'consolidate_agent', or 'rewrite_agent')
+    :param project: Project, The current project
+    :param agent_name: str, The name of the agent to use, defaults to 'agent'
+    :param doc_store: Any, The document store object, defaults to None
+    :return: None, This function does not return anything.
     """
-    # Get the appropriate agent and messages based on agent_name
-    if agent_name == "agent":
-        agent = project.agent
-        messages = project.messages
-        chat_placeholder = "Stel uw vraag..."
-        title = "Zoek agent"
-        description = "Stel hier vervolgvragen om relevante documenten te vinden."
-    elif agent_name == "consolidate_agent":
-        agent = project.consolidate_agent
-        messages = project.consolidate_messages
-        chat_placeholder = "Stel uw vraag over consolidatie..."
-        title = "Consolidatie Agent"
-        description = "Stel hier vragen over het consolidatieproces."
-    elif agent_name == "rewrite_agent":
-        agent = project.rewrite_agent
-        messages = project.rewrite_messages
-        chat_placeholder = "Stel uw vraag over herschrijven..."
-        title = "Herschrijf Agent"
-        description = "Stel hier vragen over het herschrijfproces."
-    else:
+    config = AGENT_CONFIG.get(agent_name)
+    if not config:
+        st.sidebar.error(f"Agent '{agent_name}' is not configured.")
         return
 
+    # Dynamically get the agent and messages list from the project
+    agent = getattr(project, config["agent_attr"], None)
+    messages = getattr(project, config["messages_attr"], [])
+
     with st.sidebar:
-        st.title(title)
-        st.write(description)
+        st.title(config["title"])
+        st.write(config["description"])
         st.divider()
 
         # Display chat history
@@ -48,7 +85,9 @@ def display_agent_sidebar(project: Project, agent_name: str = "agent",doc_store=
                         st.markdown(message["content"])
 
         # Chat input
-        if prompt := st.chat_input(chat_placeholder):
+        if prompt := st.chat_input(config["placeholder"]):
+            # Note: .append() modifies in-place and won't trigger save by itself.
+            # The agent response logic below handles the save via assignment.
             messages.append({"role": "user", "content": prompt})
             st.rerun()
 
@@ -64,72 +103,25 @@ def display_agent_sidebar(project: Project, agent_name: str = "agent",doc_store=
                     task_text = task.get('task', 'N/A')
                     st.markdown(f"✅ ~~{task_text}~~" if completed else f"☐ {task_text}")
 
-        # Process agent response if there's a user message
-        if (agent and
-            messages and
-            messages[-1]["role"] == "user"):
-
+        # Process agent response if the last message is from the user
+        if agent and messages and messages[-1]["role"] == "user":
             with st.chat_message("assistant"):
                 with st.spinner("Agent is aan het werk..."):
-                    agent.messages = messages
                     query = messages[-1]["content"]
-
-                    # Call the appropriate chat method based on agent type
-                    if agent_name == "agent":
-                        final_response = agent.chat(
-                            query=query,
-                            hoofdvraag=project.vraag,
-                            subvragen=project.subvragen,
-                            max_tool_turns=15
-                        )
-                    elif agent_name == "consolidate_agent":
-                        # Prepare selected documents for consolidation
-                        docs = {}
-                        for doc_id in project.saved_selection_consolidate:
-                            #if doc_id in project.agent_found_documents or doc_id in project.self_found_documents:
-                                docs[doc_id] = doc_store.documents[doc_id].content
-
-                        final_response = agent.chat(
-                            query=query,
-                            hoofdvraag=project.vraag,
-                            subvragen=project.subvragen,
-                            geconsolideerde_tekst=project.consolidated_json,
-                            selected_documents=docs,
-                            max_tool_turns=15
-                        )
-                    elif agent_name == "rewrite_agent":
-                        final_response = agent.chat(
-                            query=query,
-                            hoofdvraag=project.vraag,
-                            subvragen=project.subvragen,
-                            geconsolideerde_tekst=project.consolidated_json,
-                            max_tool_turns=15
-                        )
-
-                    # Update project state
-                    messages.extend(agent.messages[len(messages):])
+                    
+                    # Call the appropriate chat handler from the config
+                    config["chat_handler"](agent, query, project, doc_store)
+                    
+                    # Assign the new message list back to trigger the setter and save()
+                    setattr(project, config["messages_attr"], agent.messages)
                     st.rerun()
-    
-        if agent_name == "agent":
-            agent = project.agent
-            messages = project.messages
-            label = "Clear Search Agent Messages"
-        elif agent_name == "consolidate_agent":
-            agent = project.consolidate_agent
-            messages = project.consolidate_messages
-            label = "Clear Consolidate Agent Messages"
-        elif agent_name == "rewrite_agent":
-            agent = project.rewrite_agent
-            messages = project.rewrite_messages
-            label = "Clear Rewrite Agent Messages"
-        else:
-            return
 
-        if st.button(label, type="secondary"):
-            # Clear messages
-            messages.clear()
-            project.save()
+        if st.button("Clear messages", type="secondary"):
+            # Assign an empty list to trigger the setter and its automatic save()
+            setattr(project, config["messages_attr"], [])
+            
             if hasattr(agent, 'reset'):
                 agent.reset()
+            
             st.success(f"Messages cleared and {agent_name} reset!")
             st.rerun()

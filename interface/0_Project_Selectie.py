@@ -9,7 +9,9 @@ from interface.utils.project_manager import create_project, get_all_projects
 from interface.utils.session_state import initialize_session_state
 import mlflow
 from config.settings import settings
-
+from config import get_logger
+logger = get_logger()
+    
 from azure.ai.ml import MLClient
 from azure.identity import DefaultAzureCredential
 
@@ -26,8 +28,9 @@ elif settings.mlflow_location == 'AZURE':
     mlflow.set_experiment("content")
     mlflow.openai.autolog()
 
-print(f"Logging on mlflow server on {mlflow.get_tracking_uri()}")
-# Pagina Configuratie en Initialisatie
+logger.info(f"Logging on mlflow server on {mlflow.get_tracking_uri()}")
+
+
 logo_url = "https://www.belastingdienst.nl/bld-assets/bld/rhslogos/bld_logo.svg"
 st.set_page_config(
     page_title="Content Creatie Dashboard",

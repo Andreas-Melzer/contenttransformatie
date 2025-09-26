@@ -35,10 +35,14 @@ De brondocumenten bevatten twee soorten informatie. Uw taak is om deze feilloos 
 
 ## STAP 2: EXTRACTIE & STRUCTURERING
 - Extraheer de relevante informatiefragmenten uit de geselecteerde documenten:
+- LET OP DAT DE CONTENT ALLEEN RELEVANT IS BIJ DE SPECIFIEKE VRAAG IN COMBINATE MET BELASTINGSOORT EN PROCES_ONDERWERP!
 {% for doc_id, content in selected_documents.items() %}
-{{ doc_id }} : {{ content }}
+-- start {{doc_id}} --
+VRAAG: {{content.metadata.get('VRAAG',"")}} over BELASTINGSOORT :{{ content.metadata.get('BELASTINGSOORT',"")}} PROCES_ONDERWERP :{{ content.metadata.get('PROCES_ONDERWERP',"")}}  PRODUCT_SUBONDERWERP :{{ content.metadata.get('PRODUCT_SUBONDERWERP',"")}}
+CONTENT: {{ content.content }}
+-- end {{doc_id}} --
 {% endfor %}
-- Plaats elk ongewijzigd tekstfragment in de juiste categorie (`publieke_informatie` of `interne_informatie`) onder de vraag waar het bij hoort.
+- Plaats elk ongewijzigd tekstfragment in de juiste categorie (`publieke_informatie` of `interne_informatie`) onder de VRAAG MET BETREKKING TOT BELASTINGSOORT ,PROCES EN PRODUCT waar het bij hoort.
 - Verwijder enkel 100% identieke, dubbele fragmenten.
 - Documenteer alle onoplosbare tegenstrijdigheden en eventuele ontbrekende informatie in de daarvoor bestemde velden in de JSON.
 
@@ -47,8 +51,61 @@ De brondocumenten bevatten twee soorten informatie. Uw taak is om deze feilloos 
 - Geef de verzamelde data als een JSON-string door aan de `json_content` parameter. De structuur moet exact overeenkomen met het tool-schema.
 - Rapporteer een korte, feitelijke samenvatting van het extractieproces aan de gebruiker (bijv. "X fragmenten geëxtraheerd, Y conflicten gedetecteerd.").
 
-(De JSON-structuur blijft hetzelfde als in uw vorige prompt)
 
-## Eerdere consolidatie pogingen
-Mocht er al een geconsolideerde versie bestaan, dan vindt u deze hier:
-{{ geconsolideerde_tekst }}
+{
+  "hoofdvraag": "{{ hoofdvraag }}",
+  "consolidatie": [
+    {
+      "vraag": "De volledige tekst van de hoofdvraag.",
+      "publieke_informatie": {
+        "fragmenten": [
+          {
+            "tekst_fragment": "Het eerste stukje informatie bestemd voor de burger.",
+            "bron_km": "KME-nummer"
+          }
+        ]
+      },
+      "interne_informatie": {
+        "fragmenten": [
+          {
+            "tekst_fragment": "De eerste instructie voor de medewerker.",
+            "bron_km": "KME-nummer"
+          }
+        ]
+      }
+    }
+  ],
+  "subvragen_consolidatie": [
+    {
+      "vraag": "De volledige tekst van de subvraag.",
+      "publieke_informatie": {
+        "fragmenten": [
+          {
+            "tekst_fragment": "Informatiefragment relevant voor de subvraag.",
+            "bron_km": "KME-nummer"
+          }
+        ]
+      },
+      "interne_informatie": {
+        "fragmenten": [
+          {
+            "tekst_fragment": "Instructiefragment relevant voor de subvraag.",
+            "bron_km": "KME-nummer"
+          }
+        ]
+      }
+    }
+  ],
+  "gedetecteerde_conflicten": [
+    {
+      "conflict_beschrijving": "Een duidelijke beschrijving van de tegenstrijdigheid.",
+      "bron_km": ["KME-nummer(s) die het conflict veroorzaken"]
+    }
+  ],
+  "informatie_hiaten": [
+    {
+      "hiaat_beschrijving": "Een duidelijke beschrijving van welke cruciale informatie ontbreekt.",
+      "relevante_vraag": "De hoofdvraag of subvraag waarop dit hiaat betrekking heeft."
+    }
+  ]
+}

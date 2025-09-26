@@ -29,29 +29,37 @@ class SaveRewrittenJsonTool(ToolBase):
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "json_content": {
+                        "content": {
                             "type": "string",
-                            "description": "The JSON content as a string to be saved."
+                            "description": "The rewritten content as a string to be saved."
                         }
                     },
-                    "required": ["project_id", "json_content"]
+                    "required": ["content"]
                 }
             }
         }
 
-    def _execute(self, json_content: str) -> str:
+    def _execute(self, **kwargs) -> str:
         """
-        Updates the active project's rewritten JSON content and saves it.
+        Updates the active project's rewritten content and saves it.
+
+        Args:
+            kwargs: Dictionary containing the parameters:
+                - content: The content as a string to be saved
+
+        Returns:
+            str: A message indicating success or failure
         """
         try:
+            # Extract parameters
+            content = kwargs.get("content")
 
-            rewritten_data = json.loads(json_content)
-            self.project.rewritten_json = rewritten_data
-            self.project.rewritten_text = rewritten_data.get('content', '') # Also update rewritten_text for display
-            # The setter for rewritten_json automatically calls active_project.save()
+            if not content:
+                return f"Error: No JSON content provided for project {self.project.id}."
+
+            self.project.rewritten_json = content
+            self.project.rewritten_text = content
 
             return f"Rewritten JSON content for project {self.project.id} updated and saved successfully."
-        except json.JSONDecodeError:
-            return f"Error: Invalid JSON content provided for project {self.project.id}."
         except Exception as e:
             return f"Error updating rewritten JSON content for project {self.project.id}: {e}"

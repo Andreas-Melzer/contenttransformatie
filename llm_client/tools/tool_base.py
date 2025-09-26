@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Callable, Optional, Union
 import json
+from jsonschema import validate, ValidationError
+from config.logger import get_logger
+
+# Initialize logger
+logger = get_logger()
 
 class ToolBase(ABC):
     """
@@ -54,14 +59,24 @@ class ToolBase(ABC):
                         "arguments": json.dumps(kwargs)
                     }
                 }
+                # Log tool execution with truncated parameters
+                truncated_kwargs = {k: (str(v)[:150] + "..." if len(str(v)) > 150 else str(v)) for k, v in kwargs.items()}
+                logger.info(f"Executing tool: {self.schema['function']['name']} with arguments: {truncated_kwargs}")
                 self.on_call(tool_call_info)
             except Exception as e:
-                print(f"Error in 'on_call' callback for tool '{self.schema['function']['name']}': {e}")
-        
-        # 2. Core logic execution
+                logger.error(f"Error in 'on_call' callback for tool '{self.schema['function']['name']}': {e}")
+
+        # 2. Validate input against schema
+        try:
+            validate(instance=kwargs, schema=self.schema['function']['parameters'])
+        except ValidationError as e:
+            logger.error(f"Validation error for tool {self.schema['function']['name']}: {e.message}")
+            return f"Error: Invalid input for tool {self.schema['function']['name']}: {e.message}"
+
+        # 3. Core logic execution
         result = self._execute(**kwargs)
 
-        # 3. Post-execution callback (can modify the result)
+        # 4. Post-execution callback (can modify the result)
         if self.on_result:
             try:
                 # Reconstruct the result object the agent originally provided
@@ -70,10 +85,11 @@ class ToolBase(ABC):
                     "arguments": kwargs,
                     "output": result
                 }
+                logger.info(f"Tool {self.schema['function']['name']} completed with result length: {len(result) if isinstance(result, str) else 'N/A'}")
                 override_result = self.on_result(tool_result_info)
                 if override_result is not None:
                     return override_result
             except Exception as e:
-                print(f"Error in 'on_result' callback for tool '{self.schema['function']['name']}': {e}")
-            
+                logger.error(f"Error in 'on_result' callback for tool '{self.schema['function']['name']}': {e}")
+
         return result
