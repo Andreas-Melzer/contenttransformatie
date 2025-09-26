@@ -32,27 +32,22 @@ st.header("Stap 2: Consolideren van Documenten")
 # Create tabs for different sections
 tab1, tab2 = st.tabs(["Document Selectie", "Consolidatie Resultaat"])
 
-# Tab 1: Document Selection
 with tab1:
     st.subheader("Selecteer Documenten voor Consolidatie")
     
-    # Combine agent and user found documents
     all_found_documents = {**active_project.agent_found_documents, **active_project.self_found_documents}
     
     if not all_found_documents:
         st.info("Er zijn nog geen documenten gevonden. Ga terug naar de vorige stappen om documenten te vinden.")
     else:
-        # Create a dictionary with document IDs and their relevance scores for selected documents
         selected_documents_with_relevance = {}
         for doc_id in active_project.saved_selection_consolidate:
-            # Get relevance from either agent_found or self_found documents
             relevance = active_project.agent_found_documents.get(doc_id) or active_project.self_found_documents.get(doc_id, 0)
             selected_documents_with_relevance[doc_id] = relevance
         
         if not selected_documents_with_relevance:
             st.info("Er zijn nog geen documenten geselecteerd voor consolidatie. Ga naar de vorige stappen om documenten te selecteren.")
         else:
-            # Display selected documents in a table
             docs_data = []
             for doc_id, relevance in selected_documents_with_relevance.items():
                 doc = doc_store.documents.get(doc_id)
@@ -70,22 +65,15 @@ with tab1:
             if docs_data:
 
                 df = pd.DataFrame(docs_data)
-                # Use a different session key to avoid conflicts
                 display_kme_document_grid_with_selector(df, active_project, session_key="consolidate_selected_docs",selectable=False)
 
-
-# Add button to clear agent messages in the sidebar
 with st.sidebar:
-    display_clear_agent_messages_button(active_project, "consolidate_agent")
-
-    # Button to start automatic consolidation
     if st.button("Start Automatische Consolidatie", type="primary"):
         # Add a message to trigger consolidation
         consolidation_prompt = f"Ik wil graag de geselecteerde documenten consolideren voor de vraag: \"{active_project.vraag}\"."
         active_project.consolidate_messages = active_project.consolidate_messages + [{"role": "user", "content": consolidation_prompt}]
         st.rerun()
 
-# Tab 3: Consolidation Result
 with tab2:
     # Display consolidated text as Markdown
     st.markdown("### Geconsolideerde Tekst")

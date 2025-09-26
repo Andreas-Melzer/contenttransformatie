@@ -109,3 +109,27 @@ def display_agent_sidebar(project: Project, agent_name: str = "agent",doc_store=
                     # Update project state
                     messages.extend(agent.messages[len(messages):])
                     st.rerun()
+    
+        if agent_name == "agent":
+            agent = project.agent
+            messages = project.messages
+            label = "Clear Search Agent Messages"
+        elif agent_name == "consolidate_agent":
+            agent = project.consolidate_agent
+            messages = project.consolidate_messages
+            label = "Clear Consolidate Agent Messages"
+        elif agent_name == "rewrite_agent":
+            agent = project.rewrite_agent
+            messages = project.rewrite_messages
+            label = "Clear Rewrite Agent Messages"
+        else:
+            return
+
+        if st.button(label, type="secondary"):
+            # Clear messages
+            messages.clear()
+            project.save()
+            if hasattr(agent, 'reset'):
+                agent.reset()
+            st.success(f"Messages cleared and {agent_name} reset!")
+            st.rerun()

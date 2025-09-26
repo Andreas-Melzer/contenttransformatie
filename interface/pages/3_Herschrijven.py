@@ -36,20 +36,15 @@ else:
         else:
             st.info("Er is nog geen geconsolideerde content beschikbaar.")
             
-# Add button to clear agent messages in the sidebar
 with st.sidebar:
-    display_clear_agent_messages_button(active_project, "rewrite_agent")
-
-    # Button to start automatic rewriting
     if st.button("Start Automatisch Herschrijven", type="primary"):
-        # Add a message to trigger rewriting
         rewrite_prompt = f"Ik wil graag de geconsolideerde content herschrijven voor de vraag: \"{active_project.vraag}\"."
         active_project.rewrite_messages = active_project.rewrite_messages + [{"role": "user", "content": rewrite_prompt}]
         st.rerun()
     
-    # Tab 3: Show rewritten content
     with tab2:
         st.subheader("Herschreven Content")
+   
         if active_project.rewritten_text:
             st.markdown(active_project.rewritten_text)
         else:

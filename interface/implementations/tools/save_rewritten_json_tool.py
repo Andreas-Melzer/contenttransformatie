@@ -29,10 +29,6 @@ class SaveRewrittenJsonTool(ToolBase):
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        # "project_id": {
-                        #     "type": "string",
-                        #     "description": "The unique identifier of the project."
-                        # },
                         "json_content": {
                             "type": "string",
                             "description": "The JSON content as a string to be saved."

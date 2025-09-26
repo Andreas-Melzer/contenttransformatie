@@ -117,7 +117,3 @@ if agent and active_project.messages and active_project.messages[-1]["role"] == 
 
     st.session_state.selected_doc_ids = []
     st.rerun()
-
-# Add button to clear agent messages in the sidebar
-with st.sidebar:
-    display_clear_agent_messages_button(active_project, "agent")
