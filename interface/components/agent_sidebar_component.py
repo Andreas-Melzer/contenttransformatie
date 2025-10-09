@@ -45,6 +45,7 @@ AGENT_CONFIG = {
             hoofdvraag=project.vraag,
             subvragen=project.subvragen,
             geconsolideerde_tekst= enrich_consolidation(project.consolidated_json,doc_store),
+            herschreven_tekst = project.rewritten_text,
             max_tool_turns=15
         )
     }

@@ -2,6 +2,7 @@
 #TODO updaten van zoek index er worden nu te weinig documenten gevonden.
 #TODO debugging van agent in interface
 #TODO agent aanpassen zodat deze beter tools gebruikt
+#TODO zoek tool geeft geen goede logging!
 
 # Algemeen
     #TODOD Robuster maken wanneer de agent iets gaat uitvoeren. Nu start deze altijd als de laatste message van de user is dit is echter niet geheel betrouwbaar.
