@@ -64,6 +64,7 @@ active_project =get_active_project()
 st.set_page_config(layout="wide", page_title="Zoeken en selecteren")
 
 _, doc_store, vector_store = load_heavy_components()
+vector_store.metadata_filter = active_project.get_domain_filter()
 
 agent = active_project.agent
 
