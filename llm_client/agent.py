@@ -4,6 +4,9 @@ from typing import Optional, Dict, Any, List
 from .llm_client import LLMProcessor
 from .tools.tool_base import ToolBase
 from .prompt_builder import PromptBuilder
+from config.logger import get_logger
+
+logger = get_logger()
 
 class MultiTurnAgent:
     def __init__(
@@ -76,11 +79,12 @@ class MultiTurnAgent:
     def chat(self, max_tool_turns: int = 5, **kwargs) -> str:
         """Executes the full conversation loop and returns the final answer."""
         self.messages = self.prompt_processor.create_prompt(history=self.messages, **kwargs)
-        
+
         for _ in range(max_tool_turns):
             history_with_scratchpad = self._inject_scratchpad_into_history(self._get_conversation_window())
             self._append_with_max_size(self.prompt_history, history_with_scratchpad, self.max_prompt_history_size)
             result = self.llm_processor.process(history_with_scratchpad, tools=self.tool_schemas, tool_choice="auto")
+            logger.info(f"Agent used {result.usage} for response")
             self._append_with_max_size(self.response_history, result, self.max_response_history_size)
             if not result.thinking:
                 self.messages.append(result.message)

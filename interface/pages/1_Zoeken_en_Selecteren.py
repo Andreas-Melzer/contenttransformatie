@@ -14,7 +14,7 @@ from interface.components.agent_sidebar_component import display_agent_sidebar
 
 def display_agent_search_results(doc_store, project: Project, document_dict : Dict[str,int]):
     """Rendert de documententabel met AG Grid voor een interactieve ervaring."""
-    col1, col2,_ =  st.columns([1, 1,10])
+    col1, col2,_ =  st.columns([1, 1,1],gap="small",width=550)
 
     docs_data = []
     for doc_id, relevance in document_dict.items():
