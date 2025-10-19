@@ -75,18 +75,21 @@ if 'aggrid_data' not in st.session_state:
 # Display agent sidebar
 display_agent_sidebar(active_project, agent_name="agent")
 
+
+with st.sidebar:
+    if st.button("Start Automatisch Zoeken", type="primary"):
+        search_prompt = f"Ik wil graag de geselecteerde documenten zoeken voor de vraag: \"{active_project.vraag}\" en eventuele subvragen {active_project.subvragen}."
+        active_project.messages = active_project.messages + [{"role": "user", "content": search_prompt}]
+        st.rerun()
+        
 st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 1: Zoeken en Selecteren van Documenten")
 
-# Create tabs for different search methods
 tab1, tab2 = st.tabs(["Agent Zoeken", "Zelf Zoeken"])
 
 with tab1:
     st.subheader("Gevonden Documenten")
-
     all_found_documents = {**active_project.agent_found_documents, **active_project.self_found_documents}
-
-    #documenten grid tonen
     if not all_found_documents:
         st.info("Er zijn nog geen documenten gevonden. Stel een vraag in de chat of gebruik 'Zelf zoeken' om te beginnen.")
     else:
@@ -95,7 +98,6 @@ with tab1:
     if active_project.selected_doc_id:
         display_kme_document(doc_store, active_project, close_button_key="agent_close_doc")
 with tab2:
-    # Display the Zelf Zoeken component
     display_zelf_zoeken()
 
 if agent and active_project.messages and active_project.messages[-1]["role"] == "user":

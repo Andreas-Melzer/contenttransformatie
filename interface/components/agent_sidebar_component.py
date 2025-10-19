@@ -1,7 +1,7 @@
 import streamlit as st
 from interface.project import Project
 from interface.utils.rewrite_utils import enrich_consolidation
-# Central configuration dictionary for all agent types
+
 AGENT_CONFIG = {
     "agent": {
         "agent_attr": "agent",
@@ -26,7 +26,6 @@ AGENT_CONFIG = {
             query=query,
             hoofdvraag=project.vraag,
             subvragen=project.subvragen,
-            #geconsolideerde_tekst=project.consolidated_json,
             selected_documents={
                 doc_id:  doc_store.documents[doc_id]
                 for doc_id in project.saved_selection_consolidate
@@ -65,7 +64,6 @@ def display_agent_sidebar(project: Project, agent_name: str = "agent", doc_store
         st.sidebar.error(f"Agent '{agent_name}' is not configured.")
         return
 
-    # Dynamically get the agent and messages list from the project
     agent = getattr(project, config["agent_attr"], None)
     messages = getattr(project, config["messages_attr"], [])
 
@@ -74,55 +72,51 @@ def display_agent_sidebar(project: Project, agent_name: str = "agent", doc_store
         st.write(config["description"])
         st.divider()
 
-        # Display chat history
-        chat_container = st.container(height=300)
-        with chat_container:
-            for message in messages:
-                if message["role"] == "user":
-                    with st.chat_message("user"):
-                        st.markdown(message["content"])
-                elif message["role"] == "assistant" and message.get("content"):
-                    with st.chat_message("assistant"):
-                        st.markdown(message["content"])
+        # Add a button to toggle chat visibility
+        if 'chat_visible' not in st.session_state:
+            st.session_state.chat_visible = False
 
-        # Chat input
-        if prompt := st.chat_input(config["placeholder"]):
-            # Note: .append() modifies in-place and won't trigger save by itself.
-            # The agent response logic below handles the save via assignment.
-            messages.append({"role": "user", "content": prompt})
+        if st.button("Toon chat" if not st.session_state.chat_visible else "Verberg chat"):
+            st.session_state.chat_visible = not st.session_state.chat_visible
             st.rerun()
 
-        # Display scratchpad
-        st.divider()
-        with st.expander("Kladblok van de Agent"):
-            scratchpad = getattr(agent, 'scratchpad', []) if agent else []
-            if not scratchpad:
-                st.caption("Het kladblok is leeg.")
-            else:
-                for task in scratchpad:
-                    completed = task.get('completed', False)
-                    task_text = task.get('task', 'N/A')
-                    st.markdown(f"✅ ~~{task_text}~~" if completed else f"☐ {task_text}")
+        if st.session_state.chat_visible:
+            chat_container = st.container(height=300)
+            with chat_container:
+                for message in messages:
+                    if message["role"] == "user":
+                        with st.chat_message("user"):
+                            st.markdown(message["content"])
+                    elif message["role"] == "assistant" and message.get("content"):
+                        with st.chat_message("assistant"):
+                            st.markdown(message["content"])
 
-        # Process agent response if the last message is from the user
-        if agent and messages and messages[-1]["role"] == "user":
-            with st.chat_message("assistant"):
-                with st.spinner("Agent is aan het werk..."):
-                    query = messages[-1]["content"]
-                    
-                    # Call the appropriate chat handler from the config
-                    config["chat_handler"](agent, query, project, doc_store)
-                    
-                    # Assign the new message list back to trigger the setter and save()
-                    setattr(project, config["messages_attr"], agent.messages)
-                    st.rerun()
+            if prompt := st.chat_input(config["placeholder"]):
+                messages.append({"role": "user", "content": prompt})
+                st.rerun()
+
+            st.divider()
+            with st.expander("Kladblok van de Agent"):
+                scratchpad = getattr(agent, 'scratchpad', []) if agent else []
+                if not scratchpad:
+                    st.caption("Het kladblok is leeg.")
+                else:
+                    for task in scratchpad:
+                        completed = task.get('completed', False)
+                        task_text = task.get('task', 'N/A')
+                        st.markdown(f"✅ ~~{task_text}~~" if completed else f"☐ {task_text}")
+
+            if agent and messages and messages[-1]["role"] == "user":
+                with st.chat_message("assistant"):
+                    with st.spinner("Agent is aan het werk..."):
+                        query = messages[-1]["content"]
+                        config["chat_handler"](agent, query, project, doc_store)
+                        setattr(project, config["messages_attr"], agent.messages)
+                        st.rerun()
 
         if st.button("Clear messages", type="secondary"):
-            # Assign an empty list to trigger the setter and its automatic save()
             setattr(project, config["messages_attr"], [])
-            
             if hasattr(agent, 'reset'):
                 agent.reset()
-            
             st.success(f"Messages cleared and {agent_name} reset!")
             st.rerun()
