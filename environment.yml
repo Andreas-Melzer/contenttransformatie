@@ -1,0 +1,56 @@
+name: content
+channels:
+  - defaults
+dependencies:
+  - python=3.12
+  - pip:
+    # --- ML & Data Core ---
+    - numpy
+    - pandas
+    - scikit-learn
+    - scipy
+    - mlflow
+    - azureml-mlflow
+    - faiss-cpu
+
+    # --- Azure SDKs ---
+    - azure-ai-ml
+    - azure-storage-blob
+    - azure-storage-file-datalake
+    - azure-storage-file-share
+    - databricks-sdk
+
+    # --- Web Frameworks & Servers ---
+    - streamlit
+    - streamlit-aggrid==1.1.7
+    - fastapi
+    - uvicorn
+    - gunicorn
+    
+    # --- Database & ORM ---
+    - sqlalchemy
+    - alembic
+
+    # --- Data Visualization ---
+    - matplotlib
+    - plotly
+    - altair
+
+    # --- Document Processing ---
+    - openpyxl
+    - pdfplumber
+    - pymupdf
+
+    # --- Utilities ---
+    - openai
+    - docker
+    - gitpython
+    - python-dotenv
+    - python-decouple
+    - pytest
+
+    - Whoosh-Reloaded
+    - JsonExtractor
+    - tiktoken
+
+

@@ -17,3 +17,5 @@ Whoosh-Reloaded
 tiktoken
 JsonExtractor
 openpyxl
+mlflow
+azureml-mlflow
