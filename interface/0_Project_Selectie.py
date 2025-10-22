@@ -60,6 +60,9 @@ else:
         project_list.append({
             "project_id": project_id,
             "vraag": vraag,
+            "belastingsoort": data.get("belastingsoort", "N/A"),
+            "proces_onderwerp": data.get("proces_onderwerp", "N/A"),
+            "product_subonderwerp": data.get("product_subonderwerp", "N/A"),
         })
 
     df = pd.DataFrame(project_list)
@@ -79,6 +82,9 @@ else:
         column_config={
             "project_id": None,
             "vraag": st.column_config.TextColumn("Vraag", width="large"),
+            "belastingsoort": st.column_config.TextColumn("Belastingsoort", width="medium"),
+            "proces_onderwerp": st.column_config.TextColumn("Proces Onderwerp", width="medium"),
+            "product_subonderwerp": st.column_config.TextColumn("Product Subonderwerp", width="medium"),
         },
         height=400
     )

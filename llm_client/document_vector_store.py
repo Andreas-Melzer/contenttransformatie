@@ -5,7 +5,7 @@ import pickle
 import shutil
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Set
 
 import faiss
 import numpy as np
@@ -15,6 +15,8 @@ from whoosh.qparser import MultifieldParser, QueryParser
 
 from .llm_client import EmbeddingProcessor
 
+# --- Document, SimpleDocument, DocumentStore, get_stable_id, _batched ---
+# (These classes are unchanged from the previous version)
 
 @dataclass
 class Document(ABC):
@@ -46,7 +48,6 @@ class SimpleDocument(Document):
     """A basic, concrete implementation of the Document class."""
     pass
 
-#TODO add clear index method
 class DocumentStore:
     """Manages document storage, persistence, and indexed metadata searching."""
     def __init__(
@@ -64,12 +65,12 @@ class DocumentStore:
         self.data_root = data_root
         self.indexed_metadata_keys = indexed_metadata_keys or []
         
-        store_path = os.path.join(self.data_root, self.source_name)
-        os.makedirs(store_path, exist_ok=True)
-        self.persistence_file = os.path.join(store_path, "documents.pkl")
+        self.store_path = os.path.join(self.data_root, self.source_name)
+        os.makedirs(self.store_path, exist_ok=True)
+        self.persistence_file = os.path.join(self.store_path, "documents.pkl")
         self.documents: Dict[str, Document] = self._load()
         
-        index_path = os.path.join(store_path, "metadata_index")
+        self.index_path = os.path.join(self.store_path, "metadata_index")
         
         schema_fields = {'doc_id': ID(stored=True, unique=True)}
         for key in self.indexed_metadata_keys:
@@ -77,11 +78,11 @@ class DocumentStore:
         self.schema = Schema(**schema_fields)
 
 
-        if exists_in(index_path):
-            self.ix = open_dir(index_path, schema=self.schema)
+        if exists_in(self.index_path):
+            self.ix = open_dir(self.index_path, schema=self.schema)
         else:
-            os.makedirs(index_path, exist_ok=True)
-            self.ix = create_in(index_path, self.schema)
+            os.makedirs(self.index_path, exist_ok=True)
+            self.ix = create_in(self.index_path, self.schema)
             
         if self.indexed_metadata_keys:
             self.query_parser = MultifieldParser(self.indexed_metadata_keys, schema=self.schema)
@@ -160,6 +161,49 @@ class DocumentStore:
                 if doc := self.get(hit['doc_id']):
                     results.append(doc)
         return results
+
+    def clear(self):
+        """Clears all documents from the store and the search index.
+        
+        This deletes the persistence file and rebuilds the Whoosh index from scratch.
+        """
+        print(f"Clearing DocumentStore at {self.store_path}...")
+        # Clear in-memory cache
+        self.documents = {}
+        
+        # Delete persistence file
+        if os.path.exists(self.persistence_file):
+            os.remove(self.persistence_file)
+            
+        # Delete and recreate Whoosh index
+        if os.path.exists(self.index_path):
+            shutil.rmtree(self.index_path)
+        os.makedirs(self.index_path, exist_ok=True)
+        self.ix = create_in(self.index_path, self.schema)
+        
+        print("DocumentStore cleared.")
+
+    def get_doc_ids_by_metadata(self, metadata_filter: Dict[str, Any]) -> Set[str]:
+        """Gets a set of document IDs that match a metadata filter.
+        
+        This performs an exact match on all key-value pairs in the filter.
+        
+        :param metadata_filter: Dict[str, Any], The key-value pairs to filter by.
+        :return: Set[str], A set of matching document IDs.
+        """
+        if not metadata_filter:
+            return self.get_all_ids()
+            
+        matching_ids = set()
+        for doc_id, doc in self.documents.items():
+            match = True
+            for key, value in metadata_filter.items():
+                if doc.metadata.get(key) != value:
+                    match = False
+                    break
+            if match:
+                matching_ids.add(doc_id)
+        return matching_ids
     
     def contains(self,id:str):
         return id in self.documents
@@ -233,11 +277,11 @@ class VectorStore:
         self.save_every = max(1, int(save_every))
 
         model_name = self.embedder.embedding_model.replace("/", "_")
-        store_path = os.path.join(data_root, self.doc_store.source_name, model_name)
-        os.makedirs(store_path, exist_ok=True)
+        self.store_path = os.path.join(data_root, self.doc_store.source_name, model_name)
+        os.makedirs(self.store_path, exist_ok=True)
 
-        self.index_file = os.path.join(store_path, "vectors.faiss")
-        self.ids_file = os.path.join(store_path, "indexed_ids.pkl")
+        self.index_file = os.path.join(self.store_path, "vectors.faiss")
+        self.ids_file = os.path.join(self.store_path, "indexed_ids.pkl")
 
         self.indexed_ids: set[int] = set()
 
@@ -267,23 +311,19 @@ class VectorStore:
         if not isinstance(docs, list):
             docs = [docs]
 
-        # persist docs first
         self.doc_store.add(docs, refresh=refresh)
 
-        # remove existing vectors for these ids (if any)
         hashed_ids_all = np.array([get_stable_id(doc.id) for doc in docs], dtype='int64')
         if self.index.ntotal > 0 and len(hashed_ids_all):
             self.index.remove_ids(hashed_ids_all)
             self.indexed_ids.difference_update(hashed_ids_all.tolist())
 
-        # embed + add in batches
         batch_i = 0
         for chunk in _batched(docs, self.batch_size):
             contents = [d.content_to_embed for d in chunk]
             if not contents:
                 continue
-
-            # Ensure list input → list-of-vectors out
+            
             embeddings = self.embedder.embed(contents)
             emb_np = np.array(embeddings, dtype='float32')
 
@@ -295,7 +335,6 @@ class VectorStore:
             if batch_i % self.save_every == 0:
                 self._save()
 
-        # final checkpoint
         self._save()
 
     def sync_with_store(self, refresh: bool = False):
@@ -353,11 +392,15 @@ class VectorStore:
         self._save()
         print("Sync complete.")
     
-    def query(self, query_text: str, n_results: int = 5):
-        """Semantic search via FAISS.
-        Returns: List[{'document': Document, 'distance': float}]
+    def query(self, query_text: str, n_results: int = 5, metadata_filter: Optional[Dict[str, Any]] = None):
+        """Semantic search via FAISS, with optional metadata pre-filtering.
+        
+        :param query_text: str, The text to search for.
+        :param n_results: int, The maximum number of results to return, defaults to 5
+        :param metadata_filter: Optional[Dict[str, Any]], A dictionary of key-value pairs for
+                                exact-match metadata filtering before the vector search, defaults to None
+        :return: List[{'document': Document, 'distance': float}]
         """
-        # Embed 1 query (robust voor single-string -> vector / list-of-vector)
         q_emb = self.embedder.embed(query_text)
         if isinstance(q_emb, list) and q_emb and isinstance(q_emb[0], (list, np.ndarray)):
             q_emb = q_emb[0]
@@ -366,15 +409,56 @@ class VectorStore:
         if self.index.ntotal == 0:
             return []
 
-        k = min(int(n_results), self.index.ntotal)
-        distances, hashed_ids = self.index.search(q_np, k)
+        search_params = None
+        k = int(n_results)
+        
+        if metadata_filter:
+            allowed_doc_ids = self.doc_store.get_doc_ids_by_metadata(metadata_filter)
+            
+            if not allowed_doc_ids:
+                print("No documents match the metadata filter.")
+                return []
+                
+            allowed_hashed_ids = np.array(
+                [get_stable_id(doc_id) for doc_id in allowed_doc_ids], 
+                dtype='int64'
+            )
+            
+            # Ensure we only search for IDs that are actually in the index
+            indexed_allowed_ids = np.intersect1d(
+                allowed_hashed_ids, 
+                np.array(list(self.indexed_ids), dtype='int64')
+            )
+            
+            if indexed_allowed_ids.size == 0:
+                print("No indexed documents match the metadata filter.")
+                return []
+            
+            # This is a false positive from Pylint. The faiss-cpu Python
+            # wrapper correctly handles a NumPy array as the sole argument.
+            # pylint: disable=no-value-for-parameter
+            selector = faiss.IDSelectorBatch(indexed_allowed_ids)
+            
+            search_params = faiss.SearchParameters()
+            search_params.sel = selector
+            
+            # Adjust k: cannot be larger than the number of allowed items
+            k = min(k, indexed_allowed_ids.size)
+        
+        k = min(k, self.index.ntotal)
+        
+        if k == 0:
+            return []
 
-        # Map FAISS ids -> echte doc_ids
+        distances, hashed_ids = self.index.search(q_np, k, params=search_params)
+
         all_doc_ids = self.doc_store.get_all_ids()
         id_map = {get_stable_id(doc_id): doc_id for doc_id in all_doc_ids}
 
         results = []
         for dist, hid in zip(distances[0], hashed_ids[0]):
+            if hid == -1:  # FAISS returns -1 for empty slots if k > num_results
+                continue
             doc_id = id_map.get(int(hid))
             if not doc_id:
                 continue
@@ -382,3 +466,24 @@ class VectorStore:
             if doc:
                 results.append({"document": doc, "distance": float(dist)})
         return results
+
+    def clear(self):
+        """Clears the entire VectorStore and its associated DocumentStore.
+        
+        This deletes all documents, metadata indexes, and vector indexes from disk
+        and re-initializes empty stores.
+        """
+        print(f"Clearing VectorStore at {self.store_path}...")
+        # Clear the associated document store first
+        self.doc_store.clear()
+        
+        # Delete vector index files
+        if os.path.exists(self.index_file):
+            os.remove(self.index_file)
+        if os.path.exists(self.ids_file):
+            os.remove(self.ids_file)
+            
+        # Re-initialize an empty index in memory
+        self._load_or_initialize()
+        
+        print("VectorStore cleared.")

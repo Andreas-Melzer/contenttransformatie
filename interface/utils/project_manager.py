@@ -89,7 +89,10 @@ def load_all_projects():
                     new_project = Project(
                         project_id=str(uuid.uuid4()),
                         vraag=project_init['question'],
-                        subvragen=project_init['sub_questions']
+                        subvragen=project_init['sub_questions'],
+                        belastingsoort=project_init.get('belastingsoort', ''),
+                        proces_onderwerp=project_init.get('proces_onderwerp', ''),
+                        product_subonderwerp=project_init.get('product_subonderwerp', '')
                     )
                     new_project.save()
                     projects[new_project.id] = new_project.to_metadata_dict()

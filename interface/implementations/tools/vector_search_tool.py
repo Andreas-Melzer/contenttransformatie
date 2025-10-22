@@ -13,12 +13,14 @@ class VectorSearchTool(ToolBase):
         vector_store: VectorStore,
         on_call: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_result: Optional[Callable[[Dict[str, Any]], Union[str, None]]] = None,
+        metadata_filter: Optional[Dict[str, Any]] = None,
     ):
         """
         Initializes the tool with a VectorStore instance and optional callbacks.
         """
         super().__init__(on_call=on_call, on_result=on_result)
         self.vector_store = vector_store
+        self.metadata_filter = metadata_filter
 
     @property
     def schema(self) -> Dict[str, Any]:
@@ -50,7 +52,7 @@ class VectorSearchTool(ToolBase):
         query_list = queries if isinstance(queries, list) else [queries]
         best_results = {}
         for query_index, query_text in enumerate(query_list):
-            results = self.vector_store.query(query_text=query_text, n_results=n_results)
+            results = self.vector_store.query(query_text=query_text, n_results=n_results, metadata_filter=self.metadata_filter)
             if not results: continue
 
             for res in results:
@@ -67,7 +69,7 @@ class VectorSearchTool(ToolBase):
                         "distance": current_distance,
                         "query_number": query_index
                     }
-                    
+
         if not best_results:
             return "No documents found for any of the provided queries."
 

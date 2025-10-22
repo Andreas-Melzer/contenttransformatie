@@ -61,16 +61,15 @@ class Settings(BaseSettings):
 
     # --- Document Store Settings ---
     raw_doc_store_name: str = "kme_content"
-    #summary_doc_store_name: str = "kme_content_summarized"
 
     # --- Metadata Indexing Settings ---
     indexed_metadata_keys: List[str] = [
         "BELASTINGSOORT", "PROCES_ONDERWERP", "PRODUCT_SUBONDERWERP", "km_number"
     ]
-    summary_indexed_metadata_keys: List[str] = [
-        "title", "BELASTINGSOORT", "PROCES_ONDERWERP",
-        "PRODUCT_SUBONDERWERP", "Tags", "km_number"
-    ]
+    # summary_indexed_metadata_keys: List[str] = [
+    #     "title", "BELASTINGSOORT", "PROCES_ONDERWERP",
+    #     "PRODUCT_SUBONDERWERP", "Tags", "km_number"
+    # ]
 
     @model_validator(mode='after')
     def build_clients_dictionary(self) -> 'Settings':

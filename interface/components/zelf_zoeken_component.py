@@ -10,6 +10,7 @@ from interface.utils.component_loader import load_heavy_components
 from interface.components.kme_document_viewer import display_kme_document
 from interface.components.kme_document_grid import display_kme_document_grid_with_selector
 from interface.project import Project
+from typing import Optional,Dict, Any
 
 def display_zelf_zoeken():
     """
@@ -51,32 +52,11 @@ def display_zelf_zoeken():
             return 'BELASTINGSOORT:*"*"'
         return " AND ".join([p for p in parts if p])
 
-    def vector_search(vector_store, query: str, top_k: int = 10):
-        """Probeer gangbare methoden op VectorStore (search/similarity_search/query)."""
+    def vector_search(vector_store, query: str, top_k: int = 10, metadata_filter: Optional[Dict[str, Any]] = None):
+        """Performs a vector search using the VectorStore's query method."""
         if not query:
             return []
-        if hasattr(vector_store, "search"):
-            try:
-                return vector_store.search(query=query, k=top_k)
-            except TypeError:
-                try:
-                    return vector_store.search(query, top_k)
-                except Exception:
-                    pass
-            except Exception:
-                pass
-        if hasattr(vector_store, "similarity_search"):
-            try:
-                return vector_store.similarity_search(query, top_k)
-            except Exception:
-                pass
-        if hasattr(vector_store, "query"):
-            try:
-                return vector_store.query(query, top_k)
-            except Exception:
-                pass
-        st.warning("VectorStore mist een bekende zoekmethode (search/similarity_search/query). Pas de helper aan.")
-        return []
+        return vector_store.query(query_text=query, n_results=top_k, metadata_filter=metadata_filter)
 
     def _unwrap_hit(x):
         """
@@ -108,24 +88,18 @@ def display_zelf_zoeken():
     def docs_to_rows(docs):
         rows = []
         for hit in docs or []:
-            doc, score = _unwrap_hit(hit)
+            doc, _ = _unwrap_hit(hit)
 
             meta = _get(doc, "metadata", {}) or {}
             # Support dict & object
             km_id   = _get(doc, "id", "")
-            title   = _get(doc, "title", "")
-            content = _get(doc, "content", "") or ""
-            snippet = (content[:220] + " ...") if content and len(content) > 220 else content
 
             rows.append({
                 "km_nummer": km_id,
-                #"titel": title,
                 "Vraag": meta.get("VRAAG", ""),
                 "Belastingsoort": meta.get("BELASTINGSOORT", ""),
                 "Proces": meta.get("PROCES_ONDERWERP", ""),
                 "Product": meta.get("PRODUCT_SUBONDERWERP", ""),
-                #"score": score if score is not None else "",
-                #"snippet": snippet,
             })
         return rows
 
@@ -146,11 +120,14 @@ def display_zelf_zoeken():
             with st.form("vector_form", clear_on_submit=False):
                 q = st.text_input("Zoekvraag (semantisch)", placeholder="bijv. ‘verliesverrekening box 1 na emigratie’")
                 k = st.slider("Aantal resultaten", min_value=5, max_value=50, value=15, step=5)
+                belastingsoort_filter = st.text_input("Filter op BELASTINGSOORT", placeholder="bijv. IB - Inkomstenbelasting")
                 submitted = st.form_submit_button("Zoek")
 
             if submitted:
                 with st.spinner("Zoeken in vector index..."):
-                    results = vector_search(vector_store, q, top_k=k)
+                    # Set metadata filter if belastingsoort is provided
+                    metadata_filter = {"BELASTINGSOORT": belastingsoort_filter} if belastingsoort_filter.strip() else None
+                    results = vector_search(vector_store, q, top_k=k, metadata_filter=metadata_filter)
                 rows = docs_to_rows(results)
                 st.session_state.zelfzoeken_rows = rows
                 st.session_state.zelfzoeken_mode = mode
@@ -200,8 +177,6 @@ def display_zelf_zoeken():
 
         st.subheader("Resultaten")
         c1, c2, _ = st.columns([1,1,6], vertical_alignment='top')
-
-        # Use the KME document grid component
         display_kme_document_grid_with_selector(df, active_project, session_key="zelfzoeken_selected_docs", grid_key="zelfzoeken_grid")
 
         with c1:

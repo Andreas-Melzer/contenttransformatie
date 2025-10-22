@@ -12,10 +12,13 @@ class Project:
     managing data persistence across separate metadata and data files.
     """
 
-    def __init__(self, vraag: str, subvragen: Optional[List[str]], project_id: Optional[str] = None):
+    def __init__(self, vraag: str, subvragen: Optional[List[str]], project_id: Optional[str] = None, belastingsoort: Optional[str] = None, proces_onderwerp: Optional[str] = None, product_subonderwerp: Optional[str] = None):
         self._id: str = project_id or str(uuid.uuid4())
         self._vraag: str = vraag
         self._subvragen: List[str] = subvragen or []
+        self._belastingsoort: Optional[str] = belastingsoort
+        self._proces_onderwerp: Optional[str] = proces_onderwerp
+        self._product_subonderwerp: Optional[str] = product_subonderwerp
 
         # Default values for data attributes
         self._messages: List[Dict[str, Any]] = [
@@ -91,6 +94,9 @@ class Project:
             "id": self._id,
             "vraag": self._vraag,
             "subvragen": self._subvragen,
+            "belastingsoort": self._belastingsoort,
+            "proces_onderwerp": self._proces_onderwerp,
+            "product_subonderwerp": self._product_subonderwerp,
         }
         
     def to_search_data_dict(self) -> Dict[str, Any]:
@@ -132,7 +138,10 @@ class Project:
         project = cls(
             project_id=metadata["id"],
             vraag=metadata["vraag"],
-            subvragen=metadata.get("subvragen", [])
+            subvragen=metadata.get("subvragen", []),
+            belastingsoort=metadata.get("belastingsoort"),
+            proces_onderwerp=metadata.get("proces_onderwerp"),
+            product_subonderwerp=metadata.get("product_subonderwerp")
         )
         
         # Load search step data if it exists
@@ -330,3 +339,8 @@ class Project:
         self._rewritten_json = value
         self.save()
 
+    def get_domain_filter(self) -> Dict:
+        if self._belastingsoort != '':
+            return {"BELASTINGSOORT": self._belastingsoort}
+        else:
+            return None
