@@ -51,19 +51,25 @@ else:
     project_list = []
     for project_id, data in projects_metadata.items():
         vraag = ""
-        # Handle both full Project objects and metadata dicts to prevent errors
         if isinstance(data, dict):
             vraag = data.get("vraag", "Vraag niet gevonden")
-        else:  # Assumes it is a Project object
-            vraag = getattr(data, "vraag", "Vraag niet gevonden")
-
-        project_list.append({
+            project_list.append({
             "project_id": project_id,
             "vraag": vraag,
             "belastingsoort": data.get("belastingsoort", "N/A"),
             "proces_onderwerp": data.get("proces_onderwerp", "N/A"),
             "product_subonderwerp": data.get("product_subonderwerp", "N/A"),
+            })
+        else:
+            vraag = getattr(data, "vraag", "Vraag niet gevonden")
+            project_list.append({
+            "project_id": project_id,
+            "vraag": vraag,
+            "belastingsoort": getattr(data,"belastingsoort", "N/A"),
+            "proces_onderwerp": getattr(data,"proces_onderwerp", "N/A"),
+            "product_subonderwerp": getattr(data,"product_subonderwerp", "N/A"),
         })
+
 
     df = pd.DataFrame(project_list)
     search_vraag = st.text_input("Zoek op project vraag:", placeholder="Typ hier om te zoeken...")

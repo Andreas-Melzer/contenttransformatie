@@ -92,6 +92,7 @@ class MultiTurnAgent:
 
             self.messages.append(result.message)
 
+            tool_outputs = []
             for tool_call in result.thinking:
                 function_name = tool_call['function']['name']
                 tool_output = ""
@@ -113,7 +114,15 @@ class MultiTurnAgent:
                     import traceback
                     print(f"Exception details: {traceback.format_exc()}")
 
-                self.messages.append({"tool_call_id": tool_call['id'], "role": "tool", "name": function_name, "content": tool_output})
+                tool_outputs.append({"tool_call_id": tool_call['id'], "role": "tool", "name": function_name, "content": tool_output})
+            
+            tool_output_map = {output['tool_call_id']: output for output in tool_outputs}
+            
+            # Append tool outputs in the exact order of the tool calls
+            for tool_call in result.thinking:
+                tool_call_id = tool_call['id']
+                if tool_call_id in tool_output_map:
+                    self.messages.append(tool_output_map[tool_call_id])
         
         return "Maximum number of turns reached. Could you please clarify your request?"
 

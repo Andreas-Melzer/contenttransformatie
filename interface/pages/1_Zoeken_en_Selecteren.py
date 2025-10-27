@@ -101,22 +101,3 @@ with tab1:
 with tab2:
     display_zelf_zoeken()
 
-if agent and active_project.messages and active_project.messages[-1]["role"] == "user":
-    with st.sidebar:
-        with st.chat_message("assistant"):
-            with st.spinner("Agent is aan het werk..."):
-                agent.messages = active_project.messages
-                agent.scratchpad = active_project.scratchpad
-                query = active_project.messages[-1]["content"]
-                
-                final_response = agent.chat(
-                    query=query,
-                    hoofdvraag = active_project.vraag ,
-                    subvragen = active_project.subvragen,
-                    max_tool_turns=15)
-            
-                active_project.messages = agent.messages
-                active_project.scratchpad = agent.scratchpad
-
-    st.session_state.selected_doc_ids = []
-    st.rerun()

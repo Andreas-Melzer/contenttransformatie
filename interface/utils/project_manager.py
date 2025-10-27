@@ -38,7 +38,7 @@ def get_active_project() -> Project | None:
     if not active_id:
         st.error("Selecteer alstublieft een project op het dashboard.")
         if st.button("Ga naar Dashboard"):
-            st.switch_page("Project_Selectie.py")
+            st.switch_page("0_Project_Selectie.py")
         st.stop()
         return None
 
