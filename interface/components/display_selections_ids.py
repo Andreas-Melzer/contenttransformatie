@@ -30,12 +30,10 @@ def display_selection_ids(selection: List[str]):
     </style>
     """, unsafe_allow_html=True)
 
-    # 2. Handle the case where the selection list is empty.
     if not selection:
         st.info("Geen documenten geselecteerd.")
         return
 
-    # 3. Generate and display the HTML for the tags.
     tags_html = "".join([f'<span class="tag">{doc}</span>' for doc in selection])
     container_html = f'<div class="tag-container">{tags_html}</div>'
     st.markdown(container_html, unsafe_allow_html=True)

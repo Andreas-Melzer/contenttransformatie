@@ -126,7 +126,7 @@ class LLMResult:
         return self.raw_content
 
     @property
-    def thinking(self) -> Optional[List[Dict[str, Any]]]:
+    def tool_calls(self) -> Optional[List[Dict[str, Any]]]:
         """Extracts tool calls made by the model, if any."""
         message = self.api_response.choices[0].message
         if not message.tool_calls:

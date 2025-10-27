@@ -15,8 +15,6 @@ from whoosh.qparser import MultifieldParser, QueryParser
 
 from .llm_client import EmbeddingProcessor
 
-# --- Document, SimpleDocument, DocumentStore, get_stable_id, _batched ---
-# (These classes are unchanged from the previous version)
 
 @dataclass
 class Document(ABC):
@@ -168,14 +166,11 @@ class DocumentStore:
         This deletes the persistence file and rebuilds the Whoosh index from scratch.
         """
         print(f"Clearing DocumentStore at {self.store_path}...")
-        # Clear in-memory cache
         self.documents = {}
         
-        # Delete persistence file
         if os.path.exists(self.persistence_file):
             os.remove(self.persistence_file)
             
-        # Delete and recreate Whoosh index
         if os.path.exists(self.index_path):
             shutil.rmtree(self.index_path)
         os.makedirs(self.index_path, exist_ok=True)
@@ -386,7 +381,6 @@ class VectorStore:
                 return
 
             print(f"Found {len(docs_to_index)} missing documents. Indexing in batches of {self.batch_size}...")
-            # `add` is already batched and saves per batch
             self.add(docs_to_index, refresh=False)
 
         self._save()
@@ -424,7 +418,6 @@ class VectorStore:
                 dtype='int64'
             )
             
-            # Ensure we only search for IDs that are actually in the index
             indexed_allowed_ids = np.intersect1d(
                 allowed_hashed_ids, 
                 np.array(list(self.indexed_ids), dtype='int64')
@@ -434,15 +427,11 @@ class VectorStore:
                 print("No indexed documents match the metadata filter.")
                 return []
             
-            # This is a false positive from Pylint. The faiss-cpu Python
-            # wrapper correctly handles a NumPy array as the sole argument.
             # pylint: disable=no-value-for-parameter
             selector = faiss.IDSelectorBatch(indexed_allowed_ids)
             
             search_params = faiss.SearchParameters()
             search_params.sel = selector
-            
-            # Adjust k: cannot be larger than the number of allowed items
             k = min(k, indexed_allowed_ids.size)
         
         k = min(k, self.index.ntotal)
@@ -474,16 +463,13 @@ class VectorStore:
         and re-initializes empty stores.
         """
         print(f"Clearing VectorStore at {self.store_path}...")
-        # Clear the associated document store first
         self.doc_store.clear()
         
-        # Delete vector index files
         if os.path.exists(self.index_file):
             os.remove(self.index_file)
         if os.path.exists(self.ids_file):
             os.remove(self.ids_file)
             
-        # Re-initialize an empty index in memory
         self._load_or_initialize()
         
         print("VectorStore cleared.")

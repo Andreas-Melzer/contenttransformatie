@@ -103,7 +103,7 @@ def initialize_agent_for_project(project: Project, llm: LLMProcessor, vector_sto
         llm_processor=llm,
         prompt_processor=PromptBuilder('prompt_templates', 'search'),
         tools=initialize_search_tools(project,vector_store,doc_store),
-        messages=project.messages
+        messages=project.search_messages
     )
     return agent
     

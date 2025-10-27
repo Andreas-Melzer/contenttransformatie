@@ -27,7 +27,7 @@ def _add_section_content(markdown_parts: list, section_data: dict, section_title
         markdown_parts.append(f"### {section_title}")
         for fragment in fragmenten:
             markdown_parts.append(_format_fragment(fragment))
-        markdown_parts.append("")  # Add a blank line for spacing
+        markdown_parts.append("")
 
 
 def format_consolidated_json(data: dict) -> str:
@@ -75,21 +75,19 @@ def format_consolidated_json(data: dict) -> str:
             intern_sub = item.get('interne_informatie', {})
             _add_section_content(markdown_parts, intern_sub, "Interne Instructies")
         
-    # --- Conflicten ---
     conflicten = data.get('gedetecteerde_conflicten', [])
     if conflicten:
         markdown_parts.append("---")
-        markdown_parts.append("## ❗ Gedetecteerde Conflicten")
+        markdown_parts.append("##Gedetecteerde Conflicten")
         for conflict in conflicten:
             bronnen = ", ".join(conflict.get('bron_kms', []))
             markdown_parts.append(f"- **Conflict**: {conflict.get('conflict_beschrijving', '')} (Bronnen: {bronnen})")
         markdown_parts.append("")
 
-    # --- Hiaten ---
     hiaten = data.get('informatie_hiaten', [])
     if hiaten:
         markdown_parts.append("---")
-        markdown_parts.append("## ❓ Informatiehiaten")
+        markdown_parts.append("##Informatiehiaten")
         for hiaat in hiaten:
             markdown_parts.append(f"- **Hiaat**: {hiaat.get('hiaat_beschrijving', '')} (Relevant voor: {hiaat.get('relevante_vraag', '')})")
         markdown_parts.append("")

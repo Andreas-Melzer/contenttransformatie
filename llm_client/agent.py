@@ -5,9 +5,11 @@ from .llm_client import LLMProcessor
 from .tools.tool_base import ToolBase
 from .prompt_builder import PromptBuilder
 from config.logger import get_logger
+import traceback
 
 logger = get_logger()
 
+#TODO replace with agent framework based agent
 class MultiTurnAgent:
     def __init__(
         self,
@@ -50,30 +52,29 @@ class MultiTurnAgent:
         formatted = ["Scratchpad updated:"] + [f"- [{'x' if item.get('completed') else ' '}] {item.get('task')}" for item in self.scratchpad]
         return "\n".join(formatted)
 
-    def _inject_scratchpad_into_history(self, history: List[Dict]) -> List[Dict]:
-        """Removes old scratchpad notes and re-injects the current state."""
-        history_without_scratchpad = [msg for msg in history if not (msg.get("role") == "system" and msg.get("name") == "scratchpad_state")]
-        if not self.scratchpad: return history_without_scratchpad
+    # def _inject_scratchpad_into_history(self, history: List[Dict]) -> List[Dict]:
+    #     """Removes old scratchpad notes and re-injects the current state."""
+    #     history_without_scratchpad = [msg for msg in history if not (msg.get("role") == "system" and msg.get("name") == "scratchpad_state")]
+    #     if not self.scratchpad: return history_without_scratchpad
 
-        formatted_content = ["CURRENT SCRATCHPAD STATE:"] + [f"- [{'x' if item.get('completed') else ' '}] {item.get('task')}" for item in self.scratchpad]
-        scratchpad_message = {"role": "system", "name": "scratchpad_state", "content": "\n".join(formatted_content)}
+    #     formatted_content = ["CURRENT SCRATCHPAD STATE:"] + [f"- [{'x' if item.get('completed') else ' '}] {item.get('task')}" for item in self.scratchpad]
+    #     scratchpad_message = {"role": "system", "name": "scratchpad_state", "content": "\n".join(formatted_content)}
         
-        final_history = []
-        if history_without_scratchpad and history_without_scratchpad[0].get("role") == "system":
-            final_history.append(history_without_scratchpad[0])
-            conversation = history_without_scratchpad[1:]
-        else:
-            conversation = history_without_scratchpad
+    #     final_history = []
+    #     if history_without_scratchpad and history_without_scratchpad[0].get("role") == "system":
+    #         final_history.append(history_without_scratchpad[0])
+    #         conversation = history_without_scratchpad[1:]
+    #     else:
+    #         conversation = history_without_scratchpad
 
-        final_history.append(scratchpad_message)
-        final_history.extend(conversation)
-        return final_history
+    #     final_history.append(scratchpad_message)
+    #     final_history.extend(conversation)
+    #     return final_history
 
     def _append_with_max_size(self, history_list: List, item: Any, max_size: Optional[int]) -> None:
-        """Appends an item to a history list, maintaining FIFO order and max size limit."""
+        """Appends an item to a history list, maintaining max size limit."""
         history_list.append(item)
         if max_size is not None and len(history_list) > max_size:
-            # Remove oldest items to maintain max size (FIFO)
             del history_list[:len(history_list) - max_size]
 
     def chat(self, max_tool_turns: int = 5, **kwargs) -> str:
@@ -81,21 +82,23 @@ class MultiTurnAgent:
         self.messages = self.prompt_processor.create_prompt(history=self.messages, **kwargs)
 
         for _ in range(max_tool_turns):
-            history_with_scratchpad = self._inject_scratchpad_into_history(self._get_conversation_window())
-            self._append_with_max_size(self.prompt_history, history_with_scratchpad, self.max_prompt_history_size)
-            result = self.llm_processor.process(history_with_scratchpad, tools=self.tool_schemas, tool_choice="auto")
-            logger.info(f"Agent used {result.usage} for response")
+            message_history = self._get_conversation_window()
+            self._append_with_max_size(self.prompt_history, message_history, self.max_prompt_history_size)
+            result = self.llm_processor.process(message_history, tools=self.tool_schemas, tool_choice="auto")
+            
+            logger.info(f"Agent generate response token usage: {result.usage}")
             self._append_with_max_size(self.response_history, result, self.max_response_history_size)
-            if not result.thinking:
+            
+            if not result.tool_calls:
                 self.messages.append(result.message)
                 return result.raw_content or "I could not generate a response."
-
+            
             self.messages.append(result.message)
-
             tool_outputs = []
-            for tool_call in result.thinking:
+            for tool_call in result.tool_calls:
                 function_name = tool_call['function']['name']
                 tool_output = ""
+                
                 try:
                     args = json.loads(tool_call['function']['arguments'])
                     if function_name == "update_scratchpad":
@@ -110,16 +113,20 @@ class MultiTurnAgent:
                     error_message = str(e) if str(e) else f"Unknown error of type {type(e).__name__}"
                     tool_output = f"An error occurred while executing tool '{function_name}': {error_message}"
                     print(f"Error executing {function_name}: {error_message}")
-                    # Include more exception details for debugging
-                    import traceback
+  
                     print(f"Exception details: {traceback.format_exc()}")
 
+            # TODO decouple tool excecuting logic from agent loop!
+            # The OpenAI API requires that tool responses are sent in the exact same order
+            # as the tool calls in the assistant's message. To ensure compliance, we first
+            # execute all tools, then create a map from tool_call_id to the output. Finally,
+            # we iterate through the original tool_calls list and append the corresponding
+            # outputs to the messages list in the correct order.
                 tool_outputs.append({"tool_call_id": tool_call['id'], "role": "tool", "name": function_name, "content": tool_output})
             
             tool_output_map = {output['tool_call_id']: output for output in tool_outputs}
             
-            # Append tool outputs in the exact order of the tool calls
-            for tool_call in result.thinking:
+            for tool_call in result.tool_calls:
                 tool_call_id = tool_call['id']
                 if tool_call_id in tool_output_map:
                     self.messages.append(tool_output_map[tool_call_id])

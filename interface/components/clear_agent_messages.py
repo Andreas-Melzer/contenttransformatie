@@ -10,8 +10,8 @@ def display_clear_agent_messages_button(project: Project, agent_name: str = "age
         agent_name: The name of the agent to reset ('agent', 'consolidate_agent', or 'rewrite_agent')
     """
     if agent_name == "agent":
-        agent = project.agent
-        messages = project.messages
+        agent = project.search_agent
+        messages = project.search_messages
         label = "Clear Search Agent Messages"
     elif agent_name == "consolidate_agent":
         agent = project.consolidate_agent

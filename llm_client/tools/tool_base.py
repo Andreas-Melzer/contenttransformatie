@@ -4,7 +4,6 @@ import json
 from jsonschema import validate, ValidationError
 from config.logger import get_logger
 
-# Initialize logger
 logger = get_logger()
 
 class ToolBase(ABC):
@@ -49,37 +48,31 @@ class ToolBase(ABC):
         A wrapper that executes the tool's logic and handles the callbacks.
         This method should not be overridden by child classes.
         """
-        # 1. Pre-execution callback (for logging, UI updates, etc.)
         if self.on_call:
             try:
-                # Reconstruct the tool_call object the agent originally provided
                 tool_call_info = {
                     "function": {
                         "name": self.schema['function']['name'],
                         "arguments": json.dumps(kwargs)
                     }
                 }
-                # Log tool execution with truncated parameters
                 truncated_kwargs = {k: (str(v)[:150] + "..." if len(str(v)) > 150 else str(v)) for k, v in kwargs.items()}
                 logger.info(f"Executing tool: {self.schema['function']['name']} with arguments: {truncated_kwargs}")
                 self.on_call(tool_call_info)
             except Exception as e:
                 logger.error(f"Error in 'on_call' callback for tool '{self.schema['function']['name']}': {e}")
 
-        # 2. Validate input against schema
         try:
             validate(instance=kwargs, schema=self.schema['function']['parameters'])
         except ValidationError as e:
             logger.error(f"Validation error for tool {self.schema['function']['name']}: {e.message}")
             return f"Error: Invalid input for tool {self.schema['function']['name']}: {e.message}"
 
-        # 3. Core logic execution
         result = self._execute(**kwargs)
 
-        # 4. Post-execution callback (can modify the result)
+
         if self.on_result:
             try:
-                # Reconstruct the result object the agent originally provided
                 tool_result_info = {
                     "function_name": self.schema['function']['name'],
                     "arguments": kwargs,

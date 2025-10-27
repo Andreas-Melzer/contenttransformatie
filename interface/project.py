@@ -21,9 +21,7 @@ class Project:
         self._product_subonderwerp: Optional[str] = product_subonderwerp
 
         # Default values for data attributes
-        self._messages: List[Dict[str, Any]] = [
-            {"role": "assistant", "content": f"Oké, ik start het onderzoek voor de vraag: '{vraag}' en subvragen {self._subvragen}. Laten we beginnen."}
-        ]
+        self._search_messages: List[Dict[str, Any]] = []
         self._agent_found_documents: Dict[str, Any] = {}
         self._self_found_documents: Dict[str, Any] = {}
         self._scratchpad: List[Dict[str, Any]] = []
@@ -41,7 +39,7 @@ class Project:
         self._rewritten_json: Dict = {}
         
         # Non-persistent attributes
-        self.agent: Optional[MultiTurnAgent] = None
+        self.search_agent: Optional[MultiTurnAgent] = None
         self.consolidate_agent: Optional[MultiTurnAgent] = None
         self.rewrite_agent: Optional[MultiTurnAgent] = None
 
@@ -102,7 +100,7 @@ class Project:
     def to_search_data_dict(self) -> Dict[str, Any]:
         """Serializes the project's search step data to a dictionary."""
         return {
-            "messages": self._messages,
+            "search_messages": self._search_messages,
             "agent_found_documents": self._agent_found_documents,
             "self_found_documents": self._self_found_documents,
             "scratchpad": self._scratchpad,
@@ -149,7 +147,7 @@ class Project:
         if os.path.exists(search_data_path):
             with open(search_data_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                project._messages = data.get("messages", project._messages)
+                project._search_messages = data.get("messages", project._search_messages)
                 project._agent_found_documents = data.get("agent_found_documents", {})
                 project._self_found_documents = data.get("self_found_documents", {})
                 project._scratchpad = data.get("scratchpad", [])
@@ -199,12 +197,12 @@ class Project:
         self.save()
 
     @property
-    def messages(self) -> List[Dict[str, Any]]:
-        return self._messages
+    def search_messages(self) -> List[Dict[str, Any]]:
+        return self._search_messages
 
-    @messages.setter
-    def messages(self, value: List[Dict[str, Any]]):
-        self._messages = value
+    @search_messages.setter
+    def search_messages(self, value: List[Dict[str, Any]]):
+        self._search_messages = value
         self.save()
         
     @property
@@ -281,14 +279,14 @@ class Project:
             
     def reset_messages(self):
         """Reset all message histories for the project."""
-        self._messages.clear()
+        self._search_messages.clear()
         self._consolidate_messages.clear()
         self._rewrite_messages.clear()
         self.save()
         
     def reset_search_messages(self):
         """Reset message history for the search agent."""
-        self._messages.clear()
+        self._search_messages.clear()
         self.save()
         
     def reset_consolidate_messages(self):

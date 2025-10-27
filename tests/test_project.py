@@ -48,7 +48,7 @@ class TestProject:
         assert project.id == project_id
         assert project.vraag == vraag
         assert project.subvragen == subvragen
-        assert project.messages == [{"role": "assistant", "content": f"Oké, ik start het onderzoek voor de vraag: '{vraag}' en subvragen {subvragen}. Laten we beginnen."}]
+        assert project.search_messages == [{"role": "assistant", "content": f"Oké, ik start het onderzoek voor de vraag: '{vraag}' en subvragen {subvragen}. Laten we beginnen."}]
         assert project.agent_found_documents == {}
         assert project.self_found_documents == {}
         assert project.scratchpad == []

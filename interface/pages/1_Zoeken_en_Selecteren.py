@@ -66,7 +66,7 @@ st.set_page_config(layout="wide", page_title="Zoeken en selecteren")
 _, doc_store, vector_store = load_heavy_components()
 vector_store.metadata_filter = active_project.get_domain_filter()
 
-agent = active_project.agent
+agent = active_project.search_agent
 
 if 'selected_doc_ids' not in st.session_state:
     st.session_state.selected_doc_ids = []
@@ -74,13 +74,13 @@ if 'aggrid_data' not in st.session_state:
     st.session_state.aggrid_data = None
 
 # Display agent sidebar
-display_agent_sidebar(active_project, agent_name="agent")
+display_agent_sidebar(active_project, agent_name="search_agent")
 
 
 with st.sidebar:
     if st.button("Start Automatisch Zoeken", type="primary"):
         search_prompt = f"Ik wil graag de geselecteerde documenten zoeken voor de vraag: \"{active_project.vraag}\" en eventuele subvragen {active_project.subvragen}."
-        active_project.messages = active_project.messages + [{"role": "user", "content": search_prompt}]
+        active_project.search_messages = active_project.search_messages + [{"role": "user", "content": search_prompt}]
         st.rerun()
         
 st.title(f"Project: \"{active_project.vraag}\"")

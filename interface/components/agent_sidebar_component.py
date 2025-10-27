@@ -1,11 +1,15 @@
 import streamlit as st
 from interface.project import Project
 from interface.utils.rewrite_utils import enrich_consolidation
+from config.logger import get_logger
+
+logger = get_logger()
+
 
 AGENT_CONFIG = {
-    "agent": {
-        "agent_attr": "agent",
-        "messages_attr": "messages",
+    "search_agent": {
+        "agent_attr": "search_agent",
+        "messages_attr": "search_messages",
         "title": "Zoek agent",
         "description": "Stel hier vervolgvragen om relevante documenten te vinden.",
         "placeholder": "Stel uw vraag...",
@@ -66,13 +70,14 @@ def display_agent_sidebar(project: Project, agent_name: str = "agent", doc_store
 
     agent = getattr(project, config["agent_attr"], None)
     messages = getattr(project, config["messages_attr"], [])
-
+    if not agent:
+        logger.error("Unable to create agent")
+        
     with st.sidebar:
         st.title(config["title"])
         st.write(config["description"])
         st.divider()
 
-        # Add a button to toggle chat visibility
         if 'chat_visible' not in st.session_state:
             st.session_state.chat_visible = False
 
