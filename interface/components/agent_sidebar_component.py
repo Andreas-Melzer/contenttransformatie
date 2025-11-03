@@ -2,13 +2,12 @@ import streamlit as st
 from interface.project import Project
 from interface.utils.rewrite_utils import enrich_consolidation
 from config.logger import get_logger
-
+from interface.utils.global_store import global_store,AgentType
 logger = get_logger()
 
 
 AGENT_CONFIG = {
-    "search_agent": {
-        "agent_attr": "search_agent",
+    "search": {
         "messages_attr": "search_messages",
         "title": "Zoek agent",
         "description": "Stel hier vervolgvragen om relevante documenten te vinden.",
@@ -20,8 +19,7 @@ AGENT_CONFIG = {
             max_tool_turns=15
         )
     },
-    "consolidate_agent": {
-        "agent_attr": "consolidate_agent",
+    "consolidate": {
         "messages_attr": "consolidate_messages",
         "title": "Consolidatie Agent",
         "description": "Stel hier vragen over het consolidatieproces.",
@@ -37,8 +35,7 @@ AGENT_CONFIG = {
             max_tool_turns=15
         )
     },
-    "rewrite_agent": {
-        "agent_attr": "rewrite_agent",
+    "rewrite": {
         "messages_attr": "rewrite_messages",
         "title": "Herschrijf Agent",
         "description": "Stel hier vragen over het herschrijfproces.",
@@ -54,21 +51,21 @@ AGENT_CONFIG = {
     }
 }
 
-def display_agent_sidebar(project: Project, agent_name: str = "agent", doc_store=None):
+def display_agent_sidebar(project: Project, agent_type: AgentType):
     """
     Displays a generic, data-driven agent sidebar component.
 
     :param project: Project, The current project
-    :param agent_name: str, The name of the agent to use, defaults to 'agent'
+    :param agent_type: str, The name of the agent to use, defaults to 'agent'
     :param doc_store: Any, The document store object, defaults to None
     :return: None, This function does not return anything.
     """
-    config = AGENT_CONFIG.get(agent_name)
+    config = AGENT_CONFIG.get(agent_type)
     if not config:
-        st.sidebar.error(f"Agent '{agent_name}' is not configured.")
+        st.sidebar.error(f"Agent '{agent_type}' is not configured.")
         return
 
-    agent = getattr(project, config["agent_attr"], None)
+    agent = global_store.get_agent(project,agent_type)
     messages = getattr(project, config["messages_attr"], [])
     if not agent:
         logger.error("Unable to create agent")
@@ -115,7 +112,7 @@ def display_agent_sidebar(project: Project, agent_name: str = "agent", doc_store
                 with st.chat_message("assistant"):
                     with st.spinner("Agent is aan het werk..."):
                         query = messages[-1]["content"]
-                        config["chat_handler"](agent, query, project, doc_store)
+                        config["chat_handler"](agent, query, project, global_store.doc_store)
                         setattr(project, config["messages_attr"], agent.messages)
                         st.rerun()
 
@@ -123,5 +120,5 @@ def display_agent_sidebar(project: Project, agent_name: str = "agent", doc_store
             setattr(project, config["messages_attr"], [])
             if hasattr(agent, 'reset'):
                 agent.reset()
-            st.success(f"Messages cleared and {agent_name} reset!")
+            st.success(f"Messages cleared and {agent_type} reset!")
             st.rerun()

@@ -1,34 +1,32 @@
-import uuid
 
 
+import uuid 
 import pandas as pd
 import streamlit as st
-
 from interface.styles.custom_css import apply_custom_css
-from interface.utils.project_manager import create_project, get_all_projects
+from interface.utils.project_manager import create_project
 from interface.utils.session_state import initialize_session_state
 import mlflow
 from config.settings import settings
 from config import mlflow_settings
 from config import get_logger
+
 logger = get_logger()
-    
-
-
 
 logo_url = "https://www.belastingdienst.nl/bld-assets/bld/rhslogos/bld_logo.svg"
+
 st.set_page_config(
     page_title="Content Creatie Dashboard",
     page_icon=logo_url,
     layout="wide",
 )
+
 apply_custom_css()
 initialize_session_state() # Centralized session state initialization
 
 st.image(logo_url, width=500)
 st.title("Content Projecten")
 
-# Nieuw Project Aanmaken
 st.header("Nieuw Project Starten")
 with st.form("new_project_form"):
     project_question = st.text_area(
@@ -43,8 +41,8 @@ with st.form("new_project_form"):
         st.rerun()
 
 st.header("Bestaande Projecten")
-projects_metadata = get_all_projects()
 
+projects_metadata = st.session_state.get("projects", {})
 if not projects_metadata:
     st.info("Er zijn nog geen projecten. Maak hierboven een nieuw project aan om te beginnen.")
 else:
@@ -61,15 +59,13 @@ else:
             "product_subonderwerp": data.get("product_subonderwerp", "N/A"),
             })
         else:
-            vraag = getattr(data, "vraag", "Vraag niet gevonden")
             project_list.append({
             "project_id": project_id,
-            "vraag": vraag,
-            "belastingsoort": getattr(data,"belastingsoort", "N/A"),
-            "proces_onderwerp": getattr(data,"proces_onderwerp", "N/A"),
-            "product_subonderwerp": getattr(data,"product_subonderwerp", "N/A"),
-        })
-
+            "vraag":  getattr(data,"_vraag", "N/A"),
+            "belastingsoort": getattr(data,"_belastingsoort", "N/A"),
+            "proces_onderwerp": getattr(data,"_proces_onderwerp", "N/A"),
+            "product_subonderwerp": getattr(data,"_product_subonderwerp", "N/A"),
+            })
 
     df = pd.DataFrame(project_list)
     search_vraag = st.text_input("Zoek op project vraag:", placeholder="Typ hier om te zoeken...")
@@ -95,10 +91,10 @@ else:
         height=400
     )
 
+
     selection = st.session_state.get('projects_grid')
     if selection and 'rows' in selection['selection'] and len(selection['selection']['rows']) > 0:
         selected_row_index = selection['selection']['rows'][0]
         selected_project_id = filtered_df.iloc[selected_row_index]['project_id']
         st.session_state.active_project_id = selected_project_id
         st.switch_page("pages/1_Zoeken_en_Selecteren.py")
-

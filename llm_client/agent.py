@@ -46,37 +46,34 @@ class MultiTurnAgent:
         self.tool_schemas = [tool.schema for tool in self.tools] + [scratchpad_schema]
         self._available_tools = {tool.schema['function']['name']: tool for tool in self.tools}
 
+    #TODO
     def update_scratchpad(self, tasks: List[Dict]) -> str:
         """An internal method to update the agent's scratchpad."""
         self.scratchpad = tasks
         formatted = ["Scratchpad updated:"] + [f"- [{'x' if item.get('completed') else ' '}] {item.get('task')}" for item in self.scratchpad]
         return "\n".join(formatted)
 
-    # def _inject_scratchpad_into_history(self, history: List[Dict]) -> List[Dict]:
-    #     """Removes old scratchpad notes and re-injects the current state."""
-    #     history_without_scratchpad = [msg for msg in history if not (msg.get("role") == "system" and msg.get("name") == "scratchpad_state")]
-    #     if not self.scratchpad: return history_without_scratchpad
-
-    #     formatted_content = ["CURRENT SCRATCHPAD STATE:"] + [f"- [{'x' if item.get('completed') else ' '}] {item.get('task')}" for item in self.scratchpad]
-    #     scratchpad_message = {"role": "system", "name": "scratchpad_state", "content": "\n".join(formatted_content)}
-        
-    #     final_history = []
-    #     if history_without_scratchpad and history_without_scratchpad[0].get("role") == "system":
-    #         final_history.append(history_without_scratchpad[0])
-    #         conversation = history_without_scratchpad[1:]
-    #     else:
-    #         conversation = history_without_scratchpad
-
-    #     final_history.append(scratchpad_message)
-    #     final_history.extend(conversation)
-    #     return final_history
-
+    #TODO extract into message history class or other solution
     def _append_with_max_size(self, history_list: List, item: Any, max_size: Optional[int]) -> None:
         """Appends an item to a history list, maintaining max size limit."""
         history_list.append(item)
         if max_size is not None and len(history_list) > max_size:
             del history_list[:len(history_list) - max_size]
+            
+    #TODO extract into message history class or other solution
+    def _get_conversation_window(self) -> List[Dict[str, Any]]:
+        """Retrieves the conversation history, respecting the rolling window size."""
+        if self.max_history_turns <= 0 or not self.messages:
+            return self.messages
 
+        system_messages = [msg for msg in self.messages if msg['role'] == 'system']
+        conversation_messages = [msg for msg in self.messages if msg['role'] != 'system']
+        
+        user_message_indices = [i for i, msg in enumerate(conversation_messages) if msg.get('role') == 'user']
+        start_index = user_message_indices[-self.max_history_turns] if len(user_message_indices) > self.max_history_turns else 0
+            
+        return system_messages + conversation_messages[start_index:]
+    
     def chat(self, max_tool_turns: int = 5, **kwargs) -> str:
         """Executes the full conversation loop and returns the final answer."""
         self.messages = self.prompt_processor.create_prompt(history=self.messages, **kwargs)
@@ -145,16 +142,4 @@ class MultiTurnAgent:
         self.messages.clear()
         self.prompt_history.clear()
         self.response_history.clear()
-
-    def _get_conversation_window(self) -> List[Dict[str, Any]]:
-        """Retrieves the conversation history, respecting the rolling window size."""
-        if self.max_history_turns <= 0 or not self.messages:
-            return self.messages
-
-        system_messages = [msg for msg in self.messages if msg['role'] == 'system']
-        conversation_messages = [msg for msg in self.messages if msg['role'] != 'system']
         
-        user_message_indices = [i for i, msg in enumerate(conversation_messages) if msg.get('role') == 'user']
-        start_index = user_message_indices[-self.max_history_turns] if len(user_message_indices) > self.max_history_turns else 0
-            
-        return system_messages + conversation_messages[start_index:]

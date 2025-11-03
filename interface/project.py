@@ -38,10 +38,6 @@ class Project:
         self._rewritten_text: str = {}
         self._rewritten_json: Dict = {}
         
-        # Non-persistent attributes
-        self.search_agent: Optional[MultiTurnAgent] = None
-        self.consolidate_agent: Optional[MultiTurnAgent] = None
-        self.rewrite_agent: Optional[MultiTurnAgent] = None
 
     def _get_path(self, suffix: str = "") -> str:
         """Constructs the file path for project files."""
@@ -68,19 +64,15 @@ class Project:
         if not os.path.exists(settings.projects_folder):
             os.makedirs(settings.projects_folder,exist_ok=True)
         
-        # Save metadata file ({id}.json)
         with open(self._get_path(), "w", encoding="utf-8") as f:
             json.dump(self.to_metadata_dict(), f, indent=4)
             
-        # Save search step data ({id}_search.json)
         with open(self._get_search_data_path(), "w", encoding="utf-8") as f:
             json.dump(self.to_search_data_dict(), f, indent=4)
             
-        # Save consolidate step data ({id}_consolidate.json)
         with open(self._get_consolidate_data_path(), "w", encoding="utf-8") as f:
             json.dump(self.to_consolidate_data_dict(), f, indent=4)
             
-        # Save rewrite step data ({id}_rewrite.json)
         with open(self._get_rewrite_data_path(), "w", encoding="utf-8") as f:
             json.dump(self.to_rewrite_data_dict(), f, indent=4)
             

@@ -4,13 +4,11 @@
 import json
 import streamlit as st
 import pandas as pd
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, JsCode
 from interface.utils.project_manager import get_active_project
-from interface.utils.component_loader import load_heavy_components
 from interface.components.kme_document_viewer import display_kme_document
 from interface.components.kme_document_grid import display_kme_document_grid_with_selector
-from interface.project import Project
 from typing import Optional,Dict, Any
+from interface.utils.global_store import global_store
 
 def display_zelf_zoeken():
     """
@@ -19,8 +17,6 @@ def display_zelf_zoeken():
     """
     active_project = get_active_project()
     st.set_page_config(layout="wide", page_title="Zelf zoeken")
-
-    _, raw_doc_store, vector_store = load_heavy_components()
 
     # Initialize session state variables
     if "zelfzoeken_rows" not in st.session_state:
@@ -127,7 +123,7 @@ def display_zelf_zoeken():
                 with st.spinner("Zoeken in vector index..."):
                     # Set metadata filter if belastingsoort is provided
                     metadata_filter = {"BELASTINGSOORT": belastingsoort_filter} if belastingsoort_filter.strip() else None
-                    results = vector_search(vector_store, q, top_k=k, metadata_filter=metadata_filter)
+                    results = vector_search(global_store.vector_store, q, top_k=k, metadata_filter=metadata_filter)
                 rows = docs_to_rows(results)
                 st.session_state.zelfzoeken_rows = rows
                 st.session_state.zelfzoeken_mode = mode
@@ -158,7 +154,7 @@ def display_zelf_zoeken():
                 else:
                     with st.spinner("Zoeken in metadata index..."):
                         results, q_str = taxonomy_search(
-                            raw_doc_store,
+                            global_store.doc_store,
                             belastingsoort=belastingsoort,
                             proces_onderwerp=proces_onderwerp or None,
                             product_subonderwerp=product_subonderwerp or None,
@@ -194,7 +190,7 @@ def display_zelf_zoeken():
                 st.rerun()
 
         if getattr(active_project, "selected_doc_id", None):
-            display_kme_document(raw_doc_store,active_project, close_button_key="zelfzoeken_close_doc")
+            display_kme_document(active_project, close_button_key="zelfzoeken_close_doc")
 
     else:
         st.info("Nog geen resultaten. Voer een zoekopdracht uit.")

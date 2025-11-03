@@ -10,7 +10,6 @@ def main():
     """
     INTERNAL_PORT = 8501
 
-    # --- Get Script Directory ---
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
     except NameError:
@@ -19,7 +18,6 @@ def main():
         print(f"Warning: Assuming script directory is current working directory: {script_dir}")
 
 
-    # --- Construct Path to Streamlit App ---
     app_file = os.path.join(script_dir, "interface", "0_Project_Selectie.py")
 
     if not os.path.exists(app_file):

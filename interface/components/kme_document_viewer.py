@@ -1,8 +1,9 @@
 from llm_client.document_vector_store import DocumentStore
 from interface.project import Project
+from interface.utils.global_store import global_store
 import streamlit as st
 
-def display_kme_document(doc_store: DocumentStore, project: Project, close_button_key="close_document"):
+def display_kme_document(project: Project, close_button_key="close_document"):
     """Renders a detailed view for a selected document in a styled container."""
     # Define the CSS for the document viewer card's internal elements.
     st.markdown("""
@@ -42,7 +43,7 @@ def display_kme_document(doc_store: DocumentStore, project: Project, close_butto
     </style>
     """, unsafe_allow_html=True)
 
-    doc = doc_store.documents.get(project.selected_doc_id, None)
+    doc = global_store.doc_store.documents.get(project.selected_doc_id, None)
     if not doc:
         st.warning(f"Document {project.selected_doc_id} niet gevonden.")
         return
@@ -71,13 +72,3 @@ def display_kme_document(doc_store: DocumentStore, project: Project, close_butto
                     <div>{meta['private_answer_html']}</div>
                 </div>
             """, unsafe_allow_html=True)
-
-        # # Expander for full content
-        # with st.expander("Toon"):
-        #     st.markdown(getattr(doc, "content", "") or "")
-
-        # # Close Button
-        # if st.button("Sluit Document", key=close_button_key):
-        #     project.selected_doc_id = None
-        #     st.session_state.zelfzoeken_just_closed_viewer = True
-        #     st.rerun()

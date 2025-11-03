@@ -1,6 +1,5 @@
 import streamlit as st
 from interface.project import Project
-from interface.utils.component_loader import load_heavy_components, initialize_agent_for_project, initialize_consolidate_agent_for_project, initialize_rewrite_agent_for_project
 import os
 import json
 from  config.settings import settings
@@ -10,21 +9,14 @@ def load_project(project_id: str) -> Project | None:
     """Laadt een volledig project op basis van zijn ID."""
     try:
         project = Project.from_id(project_id)
-        llm, doc_store, vector_store = load_heavy_components()
-        project.search_agent = initialize_agent_for_project(project, llm, vector_store, doc_store)
-        project.consolidate_agent = initialize_consolidate_agent_for_project(project, llm, vector_store, doc_store)
-        project.rewrite_agent = initialize_rewrite_agent_for_project(project, llm, vector_store, doc_store)
         return project
     except FileNotFoundError:
         return None
 
 def create_project(project_id: str, vraag: str):
     """Maakt een nieuw project aan, initialiseert de agent, en slaat het op."""
-    llm, doc_store, vector_store = load_heavy_components()
+    #llm, doc_store, vector_store = load_heavy_components()
     project = Project(vraag=vraag, subvragen=[], project_id=project_id)
-    project.search_agent = initialize_agent_for_project(project, llm, vector_store, doc_store)
-    project.consolidate_agent = initialize_consolidate_agent_for_project(project, llm, vector_store, doc_store)
-    project.rewrite_agent = initialize_rewrite_agent_for_project(project, llm, vector_store, doc_store)
     project.save()
     st.session_state.projects[project_id] = project
 

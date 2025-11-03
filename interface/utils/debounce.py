@@ -4,9 +4,6 @@ from functools import wraps
 def debounce(wait):
     """Decorator that will postpone a function's execution until after `wait` seconds
     have elapsed since the last time it was invoked.
-
-    This version is instance-specific, meaning each instance of a class with a
-    debounced method will have its own independent timer.
     """
     def decorator(fn):
         timer_attr = f'_debounce_timer_for_{fn.__name__}'

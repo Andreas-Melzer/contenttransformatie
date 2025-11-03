@@ -1,66 +1,18 @@
 """
-Utility functions for extracting content from JAR files containing JSON documents.
+Utility functions for extracting content from a ZIP file containing HTML documents.
 """
 import os
-import glob
-import json
 import re
 import zipfile
 import html
+import tqdm
 from typing import Any, Dict, List, Optional
-import pandas as pd
+
+# We need BeautifulSoup for HTML parsing
+from bs4 import BeautifulSoup
 from config.settings import Settings
 
 settings = Settings()
-
-
-def as_list(x: Any) -> List[Any]:
-    """Convert a value to a list.
-
-    :param x: Value to convert to list. Can be None, list, or dict with "____listValues" key.
-    :return: List representation of the input value.
-    """
-    if x is None:
-        return []
-    
-    if isinstance(x, list):
-        return x
-    
-    # Some lists are stored under "____listValues"
-    if isinstance(x, dict) and "____listValues" in x:
-        return x["____listValues"]
-    
-    return [x]
-
-
-def get_field_value_list(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Extract field value list from a document.
-
-    :param doc: Document dictionary containing entityHolderMap.
-    :return: List of field value dictionaries.
-    """
-    try:
-        return as_list(doc["entityHolderMap"]["nl-NL"]["dynamicEntity"]["fieldValueList"]["____listValues"])
-    except KeyError:
-        return []
-
-
-def find_field(field_values: List[Dict[str, Any]], wanted_prefix: str) -> Optional[Any]:
-    """Find a field in a list of field values based on a prefix.
-
-    :param field_values: List of field value dictionaries.
-    :param wanted_prefix: Prefix to match against fieldId.
-    :return: Value of the matching field, or None if not found.
-    """
-    for fv in field_values:
-        fid = fv.get("fieldId", "")
-        if fid.startswith(wanted_prefix):
-            val = fv.get("value")
-            # ClobDynamicValue: nested value under value["value"]
-            if isinstance(val, dict) and "value" in val:
-                return val["value"]
-            return val
-    return None
 
 
 TAG_ID = re.compile(r"\[\[--ContentED\.([a-z0-9]+)\|\|([^|]+)\|\|([^|]+)\|\|([^-\]]+)--\]\]", re.IGNORECASE)
@@ -69,8 +21,8 @@ TAG_ID = re.compile(r"\[\[--ContentED\.([a-z0-9]+)\|\|([^|]+)\|\|([^|]+)\|\|([^-
 def extract_content_links(html_text: str) -> List[Dict[str, str]]:
     """Extract content links from HTML text.
 
-    :param html_text: HTML text containing content links.
-    :return: List of dictionaries with content link information.
+    :param html_text: str, HTML text containing content links.
+    :return: List[Dict[str, str]], List of dictionaries with content link information.
     """
     out = []
     for m in TAG_ID.finditer(html_text or ""):
@@ -86,8 +38,8 @@ def extract_content_links(html_text: str) -> List[Dict[str, str]]:
 def strip_html(html_text: Optional[str]) -> str:
     """Strip HTML tags from text and convert to plain text.
 
-    :param html_text: HTML text to strip.
-    :return: Plain text with HTML tags removed.
+    :param html_text: Optional[str], HTML text to strip.
+    :return: str, Plain text with HTML tags removed.
     """
     if not html_text:
         return ""
@@ -99,108 +51,107 @@ def strip_html(html_text: Optional[str]) -> str:
     return html.unescape(re.sub(r"\n{3,}", "\n\n", t)).strip()
 
 
-def get_id(doc: Dict[str, Any]) -> Optional[str]:
-    """Extract ID from a document.
+def extract_html(filename: str, html_content: str) -> Dict[str, Any]:
+    """Extract content from an HTML document.
 
-    :param doc: Document dictionary.
-    :return: Document ID, or None if not found.
+    :param filename: str, Name of the source file.
+    :param html_content: str, The raw HTML content.
+    :return: Dict[str, Any], Dictionary with extracted content.
     """
-    try:
-        return doc["entityHolderMap"]["nl-NL"]["dynamicEntity"]["id"]
-    except KeyError:
-        # some files also mirror an "id" at top-level of the nl-NL object
-        return doc.get("entityHolderMap", {}).get("nl-NL", {}).get("id")
+    soup = BeautifulSoup(html_content, 'html.parser')
 
+    # Extract ID (from <title> tag)
+    doc_id = soup.title.string if soup.title else None
 
-def get_tags(doc: Dict[str, Any], field_name: str) -> List[str]:
-    """Extract tags from a document based on field name.
-
-    :param doc: Document dictionary.
-    :param field_name: Name of the field to extract tags from (e.g. "topic", "agentskill", "knowledgeBase").
-    :return: List of tag values.
-    """
-    # e.g. "topic", "agentskill", "knowledgeBase"
-    fields = get_field_value_list(doc)
-    val = find_field(fields, f"{field_name}::::")
+    # Extract Title (from <div class="title">)
+    title_div = soup.find('div', class_='title')
+    title = title_div.get_text(strip=True) if title_div else None
     
-    # Tag sets come wrapped; walk to selection list
-    if isinstance(val, dict):
-        try:
-            sel = val["value"]["tagSetSelectionList"]["____listValues"]
-            return list(sel) if isinstance(sel, list) else []
-        except Exception:
-            return []
-    
-    return []
+    def get_answer_html(line_class: str) -> str:
+        """Helper to extract inner HTML from answer divs."""
+        answer_div = soup.find('div', class_=line_class)
+        if not answer_div:
+            return ""
+        
+        # Clone the div to avoid modifying the original soup
+        answer_div_clone = BeautifulSoup(str(answer_div), 'html.parser')
+        
+        # Find the header class (e.g., "private-header")
+        header_class = line_class.replace('-line', '-header')
+        header = answer_div_clone.find('div', class_=header_class)
+        
+        if header:
+            header.decompose() # Remove the header
+        
+        # Get the remaining inner HTML of the main container
+        # We find the div again *within the clone* to get the root
+        inner_div = answer_div_clone.find('div', class_=line_class)
+        return inner_div.decode_contents().strip() if inner_div else ""
 
+    private_html = get_answer_html('private-line')
+    public_html = get_answer_html('public-line')
 
-def get_comment_list(doc: Dict[str, Any]) -> List[str]:
-    """Extract comment list from a document.
+    private_text = strip_html(private_html)
+    public_text = strip_html(public_html)
 
-    :param doc: Document dictionary.
-    :return: List of comments.
-    """
-    try:
-        return as_list(doc["entityHolderMap"]["nl-NL"]["commentList"]["____listValues"])
-    except KeyError:
-        return []
+    # Extract Tags
+    tags_list = []
+    tags_div = soup.find('div', class_='tags-line')
+    if tags_div:
+        # Clone to be safe
+        tags_div_clone = BeautifulSoup(str(tags_div), 'html.parser')
+        header = tags_div_clone.find('div', class_='tags-header')
+        if header:
+            header.decompose()
+        
+        tags_text = tags_div_clone.get_text(strip=True)
+        if tags_text:
+            tags_list = [tag.strip() for tag in tags_text.split(',') if tag.strip()]
 
-
-def get_all_json_docs(pattern: str = "*scrubbed.jar", content_type: str = "geel") -> Dict[str, Any]:
-    """Extract all JSON documents from JAR files.
-
-    :param pattern: Glob pattern to match JAR files.
-    :param content_type: Content type directory to search in.
-    :return: Dictionary mapping file names to document dictionaries.
-    """
-    jar_paths = glob.glob(str(settings.content_folder / content_type / pattern))
-    docs = {}
-    
-    for jar_path in jar_paths:
-        with zipfile.ZipFile(jar_path, "r") as zf:
-            members = [m for m in zf.namelist() if m.lower().endswith(".json")]
-            for name in members:
-                try:
-                    with zf.open(name, "r") as fh:
-                        raw = fh.read()
-                    doc = json.loads(raw)
-                    docs[name] = doc
-                except Exception as e:
-                    print(str(e))
-    
-    return docs
-
-
-def extract_json(filename: str, doc: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract content from a JSON document.
-
-    :param filename: Name of the source file.
-    :param doc: Document dictionary.
-    :return: Dictionary with extracted content.
-    """
-    fvals = get_field_value_list(doc)
-    
-    title = find_field(fvals, "title::::")
-    public_html = find_field(fvals, "publicAnswer::::")
-    private_html = find_field(fvals, "privateAnswer::::")
-    
-    # some files mirror privateAnswer at nl-NL level too; fallback
-    if not private_html:
-        private_html = doc.get("entityHolderMap", {}).get("nl-NL", {}).get("privateAnswer")
-    
-    if not public_html:
-        public_html = doc.get("entityHolderMap", {}).get("nl-NL", {}).get("publicAnswer")
-    
     rec = {
         "source_file": filename,
-        "id": get_id(doc),
+        "id": doc_id,
         "title": title,
         "private_answer_html": private_html,
-        "private_answer_text": strip_html(private_html),
+        "private_answer_text": private_text,
         "publicAnswer_html": public_html,
-        "publicAnswer_text": strip_html(public_html),
+        "publicAnswer_text": public_text,
         "links_in_private_answer": extract_content_links(private_html or ""),
-        'full_text': "Public Answer: " + strip_html(public_html) + ' Private Answer: ' + strip_html(private_html)
+        'full_text': "Public Answer: " + public_text + ' Private Answer: ' + private_text,
+        "tags": tags_list
     }
     
     return rec
+
+
+def get_all_html_docs(file_name: str) -> Dict[str, Any]:
+    """Extract all HTML documents from a single ZIP file.
+
+    :param file_name: str, The name of the zip file in the content_folder.
+    :return: Dict[str, Any], Dictionary mapping internal file names to extracted document records.
+    """
+    zip_path = settings.content_folder / file_name
+    docs = {}
+    
+    if not os.path.exists(zip_path):
+        print(f"Error: File not found at {zip_path}")
+        return {}
+
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        # Find all HTML files
+        members = [m for m in zf.namelist() if m.lower().endswith(".html")]
+        for name in tqdm.tqdm(members):
+            try:
+                with zf.open(name, "r") as fh:
+                    raw = fh.read()
+                    # Decode HTML content using utf-8-sig
+                    html_content = raw.decode('utf-8-sig')
+                
+                # Use the HTML extraction function
+                doc_record = extract_html(name, html_content)
+                docs[name] = doc_record
+                
+            except Exception as e:
+                print(f"Error processing {name} in {zip_path}: {e}")
+    
+    return docs

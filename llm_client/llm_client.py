@@ -4,6 +4,8 @@ import sys
 from typing import Callable, Optional, Dict, Any, List, Union
 from openai.types.chat import ChatCompletion
 from json_extractor import JsonExtractor
+from config.logger import get_logger
+logger =get_logger()
 
 def json_post_process(raw_output: str) -> Any:
     """
@@ -170,6 +172,7 @@ class LLMProcessor(_BaseProcessor):
         self.default_post_process = default_post_process
         self.temperature = temperature
         self._client = self._create_client(client_config)
+        self.usage = []
 
     def process(
         self,
@@ -204,9 +207,13 @@ class LLMProcessor(_BaseProcessor):
             request_params['reasoning_effort'] = reasoning_effort
         if max_completion_tokens is not None:
             request_params["max_tokens"] = max_completion_tokens
-    
+        
+
         completion = self._client.chat.completions.create(**request_params)
-        return LLMResult(response=completion, processor=processor_to_use)
+        result = LLMResult(response=completion, processor=processor_to_use)
+        logger.info(f"Performing chat completion {result.usage}")
+        self.usage.append(result.usage)
+        return result
 
 class EmbeddingProcessor(_BaseProcessor):
     """A client for generating embeddings."""
