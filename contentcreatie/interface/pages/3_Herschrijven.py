@@ -1,6 +1,6 @@
 import streamlit as st
-from interface.utils.project_manager import get_active_project
-from interface.components.agent_sidebar_component import display_agent_sidebar
+from utils.project_manager import get_active_project
+from components.agent_sidebar_component import display_agent_sidebar
 
 active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Herschrijven")

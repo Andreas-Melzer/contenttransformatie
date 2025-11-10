@@ -1,17 +1,21 @@
 import streamlit as st
 import json
-from interface.utils.project_manager import get_active_project
-from llm_client.llm_client import json_decode
-from interface.utils.consolidation_utils import format_consolidated_json
+
+from contentcreatie.llm_client.llm_client import json_decode
+
 import pandas as pd
-from interface.implementations.tools.save_consolidated_json_tool import SaveConsolidatedJsonTool
-from interface.components.kme_document_grid import display_kme_document_grid_with_selector
-from interface.components.agent_sidebar_component import display_agent_sidebar
-from interface.components.kme_document_viewer import display_kme_document
-from interface.utils.global_store import global_store
-                
+from implementations.tools.save_consolidated_json_tool import SaveConsolidatedJsonTool
+from components.kme_document_grid import display_kme_document_grid_with_selector
+from components.agent_sidebar_component import display_agent_sidebar
+from components.kme_document_viewer import display_kme_document
+from utils.heavy_components import load_heavy_components
+from utils.project_manager import get_active_project
+from utils.consolidation_utils import format_consolidated_json
+               
 active_project = get_active_project()
 st.set_page_config(layout="wide", page_title="Consolideren")
+
+_ , doc_store , _ = load_heavy_components()
 
 if 'consolidate_selected_docs' not in st.session_state:
     st.session_state.consolidate_selected_docs = active_project.saved_selection_consolidate or []
@@ -40,7 +44,7 @@ else:
         else:
             docs_data = []
             for doc_id, relevance in selected_documents_with_relevance.items():
-                doc = global_store.doc_store.documents.get(doc_id)
+                doc = doc_store.documents.get(doc_id)
                 if doc:
                     meta = doc.metadata
                     docs_data.append({
@@ -61,7 +65,7 @@ else:
             if active_project.selected_doc_id:
                 display_kme_document(active_project, close_button_key="consolidate_close_doc")
                 
-    display_agent_sidebar(active_project, agent_type="consolidate_agent")
+    display_agent_sidebar(active_project, agent_type="consolidate")
     with st.sidebar:
         if st.button("Start Automatische Consolidatie", type="primary"):
             # Add a message to trigger consolidation

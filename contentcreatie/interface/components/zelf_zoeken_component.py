@@ -4,11 +4,12 @@
 import json
 import streamlit as st
 import pandas as pd
-from interface.utils.project_manager import get_active_project
-from interface.components.kme_document_viewer import display_kme_document
-from interface.components.kme_document_grid import display_kme_document_grid_with_selector
+from utils.project_manager import get_active_project
+from components.kme_document_viewer import display_kme_document
+from components.kme_document_grid import display_kme_document_grid_with_selector
 from typing import Optional,Dict, Any
-from interface.utils.global_store import global_store
+from utils.heavy_components import load_heavy_components
+_,doc_store,vector_store = load_heavy_components()
 
 def display_zelf_zoeken():
     """
@@ -123,7 +124,7 @@ def display_zelf_zoeken():
                 with st.spinner("Zoeken in vector index..."):
                     # Set metadata filter if belastingsoort is provided
                     metadata_filter = {"BELASTINGSOORT": belastingsoort_filter} if belastingsoort_filter.strip() else None
-                    results = vector_search(global_store.vector_store, q, top_k=k, metadata_filter=metadata_filter)
+                    results = vector_search(vector_store, q, top_k=k, metadata_filter=metadata_filter)
                 rows = docs_to_rows(results)
                 st.session_state.zelfzoeken_rows = rows
                 st.session_state.zelfzoeken_mode = mode
@@ -154,7 +155,7 @@ def display_zelf_zoeken():
                 else:
                     with st.spinner("Zoeken in metadata index..."):
                         results, q_str = taxonomy_search(
-                            global_store.doc_store,
+                            doc_store,
                             belastingsoort=belastingsoort,
                             proces_onderwerp=proces_onderwerp or None,
                             product_subonderwerp=product_subonderwerp or None,

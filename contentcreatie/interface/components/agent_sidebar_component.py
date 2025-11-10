@@ -1,9 +1,11 @@
 import streamlit as st
-from interface.project import Project
-from interface.utils.rewrite_utils import enrich_consolidation
+from project import Project
+from utils.rewrite_utils import enrich_consolidation
 from config.logger import get_logger
-from interface.utils.global_store import global_store,AgentType
+from utils.heavy_components import load_heavy_components ,AgentType, get_agent
 logger = get_logger()
+
+_,doc_store,_ = load_heavy_components()
 
 
 AGENT_CONFIG = {
@@ -65,7 +67,7 @@ def display_agent_sidebar(project: Project, agent_type: AgentType):
         st.sidebar.error(f"Agent '{agent_type}' is not configured.")
         return
 
-    agent = global_store.get_agent(project,agent_type)
+    agent = get_agent(project,agent_type)
     messages = getattr(project, config["messages_attr"], [])
     if not agent:
         logger.error("Unable to create agent")
@@ -112,7 +114,7 @@ def display_agent_sidebar(project: Project, agent_type: AgentType):
                 with st.chat_message("assistant"):
                     with st.spinner("Agent is aan het werk..."):
                         query = messages[-1]["content"]
-                        config["chat_handler"](agent, query, project, global_store.doc_store)
+                        config["chat_handler"](agent, query, project, doc_store)
                         setattr(project, config["messages_attr"], agent.messages)
                         st.rerun()
 

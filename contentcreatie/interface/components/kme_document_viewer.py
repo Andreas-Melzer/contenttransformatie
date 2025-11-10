@@ -1,7 +1,7 @@
-from llm_client.document_vector_store import DocumentStore
-from interface.project import Project
-from interface.utils.global_store import global_store
+from project import Project
+from utils.heavy_components import load_heavy_components
 import streamlit as st
+_,doc_store,_ = load_heavy_components()
 
 def display_kme_document(project: Project, close_button_key="close_document"):
     """Renders a detailed view for a selected document in a styled container."""
@@ -43,7 +43,7 @@ def display_kme_document(project: Project, close_button_key="close_document"):
     </style>
     """, unsafe_allow_html=True)
 
-    doc = global_store.doc_store.documents.get(project.selected_doc_id, None)
+    doc = doc_store.documents.get(project.selected_doc_id, None)
     if not doc:
         st.warning(f"Document {project.selected_doc_id} niet gevonden.")
         return

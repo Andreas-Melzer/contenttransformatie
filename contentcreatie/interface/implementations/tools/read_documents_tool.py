@@ -1,7 +1,7 @@
 import json
 from typing import Dict, Any, List, Optional, Callable, Union
-from llm_client.tools.tool_base import ToolBase
-from llm_client.document_vector_store import DocumentStore
+from contentcreatie.llm_client.tools.tool_base import ToolBase
+from contentcreatie.llm_client.document_store import DocumentStore
 
 class ReadDocumentsTool(ToolBase):
     """

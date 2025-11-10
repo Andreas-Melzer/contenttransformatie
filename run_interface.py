@@ -18,7 +18,7 @@ def main():
         print(f"Warning: Assuming script directory is current working directory: {script_dir}")
 
 
-    app_file = os.path.join(script_dir, "interface", "0_Project_Selectie.py")
+    app_file = os.path.join(script_dir,'contentcreatie',"interface", "0_Project_Selectie.py")
 
     if not os.path.exists(app_file):
         print(f"Error: Could not find the application file at {app_file}")

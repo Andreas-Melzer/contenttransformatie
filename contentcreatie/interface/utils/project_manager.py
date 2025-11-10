@@ -1,5 +1,5 @@
 import streamlit as st
-from interface.project import Project
+from contentcreatie.interface.project import Project
 import os
 import json
 from  config.settings import settings

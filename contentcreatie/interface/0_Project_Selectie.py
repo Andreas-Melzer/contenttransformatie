@@ -3,13 +3,11 @@
 import uuid 
 import pandas as pd
 import streamlit as st
-from interface.styles.custom_css import apply_custom_css
-from interface.utils.project_manager import create_project
-from interface.utils.session_state import initialize_session_state
+from contentcreatie.interface.styles.custom_css import apply_custom_css
+from contentcreatie.interface.utils.project_manager import create_project, load_all_projects
 import mlflow
 from config.settings import settings
-from config import mlflow_settings
-from config import get_logger
+from config import mlflow_settings, get_logger
 
 logger = get_logger()
 
@@ -22,6 +20,13 @@ st.set_page_config(
 )
 
 apply_custom_css()
+def initialize_session_state():
+    """Initializes all necessary session state variables if they don't exist."""
+    if "projects" not in st.session_state:
+        st.session_state.projects = load_all_projects()
+    if "active_project_id" not in st.session_state:
+        st.session_state.active_project_id = None
+        
 initialize_session_state() # Centralized session state initialization
 
 st.image(logo_url, width=500)

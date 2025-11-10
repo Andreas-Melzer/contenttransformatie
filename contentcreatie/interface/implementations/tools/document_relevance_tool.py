@@ -1,6 +1,6 @@
 import json
 from typing import Dict, Any, List, Optional, Callable, Union
-from llm_client.tools.tool_base import ToolBase
+from contentcreatie.llm_client.tools.tool_base import ToolBase
 
 class DocumentRelevanceTool(ToolBase):
     """

@@ -1,7 +1,7 @@
 import json
 from typing import Dict, Any, List, Union, Optional, Callable
-from llm_client.tools.tool_base import ToolBase
-from llm_client.document_vector_store import VectorStore
+from contentcreatie.llm_client.tools.tool_base import ToolBase
+from contentcreatie.llm_client.vector_store import VectorStore
 
 class VectorSearchTool(ToolBase):
     """

@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, Callable, Union, List
-from llm_client.tools.tool_base import ToolBase
-from interface.project import Project
+from contentcreatie.llm_client.tools.tool_base import ToolBase
+from project import Project
 
 class SaveConsolidatedJsonTool(ToolBase):
     """
