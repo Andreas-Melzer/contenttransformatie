@@ -8,10 +8,9 @@ from whoosh.fields import ID, TEXT, Schema
 from whoosh.index import create_in, exists_in, open_dir
 from whoosh.qparser import MultifieldParser
 from .document import Document, SimpleDocument
-from config.logger import get_logger
+from logging import getLogger
+logger = getLogger("Contenttransformatie")
 
-logger = get_logger()
- 
 class DocumentStore:
     """Manages document storage, persistence, and indexed metadata searching."""
     def __init__(

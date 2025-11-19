@@ -4,8 +4,9 @@ import sys
 from typing import Callable, Optional, Dict, Any, List, Union
 from openai.types.chat import ChatCompletion
 from json_extractor import JsonExtractor
-from config.logger import get_logger
-logger =get_logger()
+from logging import getLogger
+
+logger = getLogger("Contenttransformatie")
 
 def json_post_process(raw_output: str) -> Any:
     """

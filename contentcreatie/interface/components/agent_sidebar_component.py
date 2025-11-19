@@ -1,9 +1,9 @@
 import streamlit as st
 from project import Project
 from utils.rewrite_utils import enrich_consolidation
-from config.logger import get_logger
 from utils.heavy_components import load_heavy_components ,AgentType, get_agent
-logger = get_logger()
+from logging import getLogger
+logger = getLogger("Contenttransformatie")
 
 _,doc_store,_ = load_heavy_components()
 

@@ -46,7 +46,7 @@ class PromptBuilder:
                                   {self.name}_system.j2 (system) can be found
                                   in the template path.
         """
-        # --- Schema Loading (Optional) ---
+
         schema_path = os.path.join(self.template_path, f"{self.name}.json")
         try:
             with open(schema_path, 'r') as f:
@@ -55,9 +55,7 @@ class PromptBuilder:
         except FileNotFoundError:
             self.schema = None
             self.schema_str = ""
-            # This is not an error, schema is optional.
 
-        # --- User Template Loading ---
         try:
             user_source = self.env.loader.get_source(self.env, f"{self.name}.j2")[0]
             self.user_template = self.env.from_string(user_source)
@@ -67,7 +65,6 @@ class PromptBuilder:
             self.user_template = None
             self.user_vars = set()
 
-        # --- System Template Loading ---
         try:
             system_source = self.env.loader.get_source(self.env, f"{self.name}_system.j2")[0]
             self.system_template = self.env.from_string(system_source)
@@ -77,7 +74,6 @@ class PromptBuilder:
             self.system_template = None
             self.system_vars = set()
             
-        # --- Validation (Stopping Error) ---
         if self.user_template is None and self.system_template is None:
             raise FileNotFoundError(
                 f"No templates found for '{self.name}'. At least one of "

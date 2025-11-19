@@ -10,3 +10,4 @@
 *.env
 *.xlsx
 /data/projects/*
+**/local_data/

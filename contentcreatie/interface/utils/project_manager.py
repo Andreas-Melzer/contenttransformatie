@@ -1,9 +1,11 @@
 import streamlit as st
-from contentcreatie.interface.project import Project
 import os
 import json
-from  config.settings import settings
+from contentcreatie.interface.project import Project
+from contentcreatie.config.settings import settings
+from contentcreatie.config.paths import paths
 import uuid
+from contentcreatie.interface.project.project_ledger import project_ledger
 
 def load_project(project_id: str) -> Project | None:
     """Laadt een volledig project op basis van zijn ID."""
@@ -13,11 +15,13 @@ def load_project(project_id: str) -> Project | None:
     except FileNotFoundError:
         return None
 
-def create_project(project_id: str, vraag: str):
+def create_project(project_id: str, vraag: str,subvragen = [], belastingsoort:str=None, proces:str=None,product:str=None):
     """Maakt een nieuw project aan, initialiseert de agent, en slaat het op."""
-    #llm, doc_store, vector_store = load_heavy_components()
-    project = Project(vraag=vraag, subvragen=[], project_id=project_id)
-    project.save()
+    project = Project(vraag=vraag, subvragen=subvragen, project_id=project_id)
+    project._belastingsoort = belastingsoort
+    project._proces_onderwerp = proces
+    project._product_subonderwerp = product
+    project.save_immidate()
     st.session_state.projects[project_id] = project
 
 def get_all_projects():
@@ -48,45 +52,85 @@ def get_active_project() -> Project | None:
 
     return project
 
-
 def load_all_projects():
-    """Laadt de metadata van alle projecten van schijf voor een snelle lijstweergave."""
-    projects = {}
-    if not os.path.exists(settings.projects_folder):
-        os.makedirs(settings.projects_folder)
-    
-    existing_project_questions = set()
+    """
+    Loads project metadata from the Ledger. 
+    This is instant (O(1)) compared to iterating all files (O(N)).
+    """
+    return project_ledger.get_all_projects()
 
-    # Laad bestaande projecten door metadata-bestanden te lezen
-    for filename in os.listdir(settings.projects_folder):
-        if filename.endswith(".json") and not filename.endswith("_data.json") and not filename.endswith("_search.json") and not filename.endswith("_consolidate.json") and not filename.endswith("_rewrite.json"):
-            project_id = filename[:-5]
+def load_project(project_id: str) -> Project | None:
+    """
+    Loads a project. If the file is missing (corruption), 
+    it attempts to 'Resurrect' it using the data from the Ledger.
+    """
+    try:
+        # Try standard load
+        project = Project.from_id(project_id)
+        return project
+    except FileNotFoundError:
+        print(f"Project file missing for {project_id}. Attempting resurrection from Ledger...")
+        
+        # FETCH FROM LEDGER
+        ledger_data = project_ledger.get_all_projects().get(project_id)
+        
+        if ledger_data:
+            # Reconstruct the object using the ledger cache
+            project = Project(
+                project_id=ledger_data.get("id"),
+                vraag=ledger_data.get("vraag"),
+                subvragen=ledger_data.get("subvragen", []),
+                belastingsoort=ledger_data.get("belastingsoort"),
+                proces_onderwerp=ledger_data.get("proces_onderwerp"),
+                product_subonderwerp=ledger_data.get("product_subonderwerp")
+            )
+            # Auto-heal: Save it immediately to restore the physical file
+            project.save()
+            return project
+        else:
+            return None
+
+def force_delete_project(project_id: str):
+    """
+    Deletes a project by ID directly. 
+    Does NOT require loading the project object first.
+    Useful for corrupted projects that cannot be opened.
+    """
+    # 1. Remove from Ledger
+    project_ledger.delete_project(project_id)
+
+    # 2. Identify files
+    # We manually construct paths since we don't have an object instance
+    files_to_remove = [
+        f"projects/{project_id}.json",
+        f"projects/{project_id}_search.json",
+        f"projects/{project_id}_consolidate.json",
+        f"projects/{project_id}_rewrite.json"
+    ]
+
+    # 3. Handle Remote Cleanup (Unmount + Blob Delete)
+    if paths.remote:
+        try:
+            from contentcreatie.storage.mount_manager import mount_manager
+            from contentcreatie.storage.storage_service import storage_service
+            
+            for blob_name in files_to_remove:
+                mount_manager.unmount(blob_name)
+                storage_service.delete_blob(blob_name)
+                print(f"Force deleted remote: {blob_name}")
+        except ImportError:
+            pass
+
+    # 4. Local Disk Cleanup
+    # We guess the local path based on the paths config
+    for blob_name in files_to_remove:
+        # Assuming standard structure: local_root/projects/filename
+        filename = os.path.basename(blob_name)
+        local_path = paths.projects_folder / filename
+        
+        if local_path.exists():
             try:
-                with open(os.path.join(settings.projects_folder, filename), "r", encoding="utf-8") as f:
-                    metadata = json.load(f)
-                    projects[project_id] = metadata
-                    existing_project_questions.add(metadata['vraag'])
-            except (json.JSONDecodeError, KeyError):
-                print(f"Skipping corrupt metadata file: {filename}")
-                continue
-
-    #TODO dit moet echt ergens anders gebeuren
-    # Synchroniseer met de initiële projectenlijst
-    project_list_path = os.path.join(settings.data_root, "project_list.json")
-    if os.path.exists(project_list_path):
-        with open(project_list_path, "r", encoding="utf-8") as f:
-            project_init_list = json.load(f)
-            for project_init in project_init_list:
-                if project_init['question'] not in existing_project_questions:
-                    new_project = Project(
-                        project_id=str(uuid.uuid4()),
-                        vraag=project_init['question'],
-                        subvragen=project_init['sub_questions'],
-                        belastingsoort=project_init.get('belastingsoort', ''),
-                        proces_onderwerp=project_init.get('proces_onderwerp', ''),
-                        product_subonderwerp=project_init.get('product_subonderwerp', '')
-                    )
-                    new_project.save()
-                    projects[new_project.id] = new_project.to_metadata_dict()
-    
-    return projects
+                os.remove(local_path)
+                print(f"Force deleted local: {local_path}")
+            except OSError:
+                pass

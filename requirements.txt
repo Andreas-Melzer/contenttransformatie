@@ -19,3 +19,4 @@ JsonExtractor
 openpyxl
 mlflow
 azureml-mlflow
+st-combobox

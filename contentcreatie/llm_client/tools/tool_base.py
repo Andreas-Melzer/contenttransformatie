@@ -2,9 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Callable, Optional, Union
 import json
 from jsonschema import validate, ValidationError
-from config.logger import get_logger
-
-logger = get_logger()
+from logging import getLogger
+logger = getLogger("Contenttransformatie")
 
 class ToolBase(ABC):
     """

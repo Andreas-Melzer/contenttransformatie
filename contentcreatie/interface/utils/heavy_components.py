@@ -1,7 +1,8 @@
 import streamlit as st
 from typing import Literal, Dict, Tuple, List
 
-from config.settings import settings
+from contentcreatie.config.settings import settings
+from contentcreatie.config.paths import paths
 from project import Project
 from utils.callbacks import (list_documents_callback,
                                streamlit_tool_callback,
@@ -54,16 +55,14 @@ def load_heavy_components() -> Tuple[LLMProcessor, DocumentStore, VectorStore]:
     )
     doc_store = DocumentStore(
         settings.raw_doc_store_name,
-        settings.docstore_folder,
+        paths.docstore_folder,
         settings.indexed_metadata_keys
     )
     vector_store = VectorStore(embedder=embedder,
                                doc_store=doc_store,
-                               data_root=settings.docstore_folder)
+                               data_root=paths.docstore_folder)
     
     return llm, doc_store, vector_store
-
-# --- Tool Initializers ---
 
 def _initialize_search_tools(project: Project, vector_store: VectorStore, doc_store: DocumentStore) -> List[ToolBase]:
     on_call_with_project = lambda tool_call: streamlit_tool_callback(tool_call, project)

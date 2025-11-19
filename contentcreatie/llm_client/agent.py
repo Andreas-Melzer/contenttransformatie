@@ -4,10 +4,9 @@ from typing import Optional, Dict, Any, List
 from .llm_client import LLMProcessor
 from .tools.tool_base import ToolBase
 from .prompt_builder import PromptBuilder
-from config.logger import get_logger
 import traceback
-
-logger = get_logger()
+from logging import getLogger
+logger = getLogger("Contenttransformatie")
 
 #TODO replace with agent framework based agent
 class MultiTurnAgent:

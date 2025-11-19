@@ -4,13 +4,12 @@ import pickle
 from typing import Any, Dict, List, Optional, Union
 import faiss
 import numpy as np
-from config.logger import get_logger
 from .llm_client import EmbeddingProcessor
 from .document_store import DocumentStore
 from .document import Document
 
-logger = get_logger()
-
+from logging import getLogger
+logger = getLogger("Contenttransformatie")
 
 
 def get_stable_id(doc_id: str) -> int:

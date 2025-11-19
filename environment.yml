@@ -52,5 +52,6 @@ dependencies:
     - Whoosh-Reloaded
     - JsonExtractor
     - tiktoken
+    - st-combobox
 
 
