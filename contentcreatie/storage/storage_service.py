@@ -9,6 +9,7 @@ from azure.identity import DefaultAzureCredential
 from azure.core.exceptions import ResourceNotFoundError
 from ..config import settings
 import os
+import dotenv
 import hashlib
 
 class StorageService:
@@ -19,7 +20,8 @@ class StorageService:
     
     _instance = None
     _lock = threading.Lock()
-
+    dotenv.load_dotenv()
+    
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
             with cls._lock:
@@ -48,12 +50,26 @@ class StorageService:
         else:
             if not self.storage_account_name or not self.container_name:
                 raise ValueError("Storage config missing.")
+            
             try:
-                account_url = f"https://{self.storage_account_name}.blob.core.windows.net"
-                self.blob_service_client = BlobServiceClient(account_url, credential=DefaultAzureCredential())
+                conn_str = os.environ.get('AZURE_STORAGE_CONNECTION_STRING')
+                if conn_str:
+                    print("StorageService: Found Connection String. Using Key-based auth.")
+                    self.blob_service_client = BlobServiceClient.from_connection_string(conn_str)
+                else:
+                    # Priority 2: DefaultAzureCredential (Identity/Entra)
+                    if not self.storage_account_name:
+                        raise ValueError("Storage Account Name missing for Identity Auth.")
+                        
+                    print("StorageService: No Connection String found. Attempting DefaultAzureCredential...")
+                    account_url = f"https://{self.storage_account_name}.blob.core.windows.net"
+                    self.blob_service_client = BlobServiceClient(account_url, credential=DefaultAzureCredential())
+
+                # Validate connection immediately
                 self.container_client = self.blob_service_client.get_container_client(self.container_name)
+                
             except Exception as e:
-                raise ConnectionError(f"Azure Init Failed: {e}")
+                raise ConnectionError(f"Azure Storage Init Failed: {e}")
 
         self._initialized = True
 
@@ -265,4 +281,4 @@ class StorageService:
         return count
             
         
-storage_service = StorageService()
+storage_service = StorageService()  

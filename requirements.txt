@@ -20,3 +20,4 @@ openpyxl
 mlflow
 azureml-mlflow
 st-combobox
+azure-identity-broker
