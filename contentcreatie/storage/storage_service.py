@@ -34,7 +34,7 @@ class StorageService:
                  storage_account_name: str = None, 
                  container_name: str = None,
                  use_local_storage: bool = False,
-                 local_base_path: str = "local_data"):
+                 local_base_path: str = "/tmp"):
         
         if getattr(self, '_initialized', False):
             return
