@@ -117,3 +117,10 @@ Bijdragen aan dit project zijn welkom. Gelieve een fork te maken van de reposito
 ## Licentie
 
 Dit project is bedoeld voor intern gebruik binnen de Belastingdienst.
+
+
+docker build \
+  --secret id=azure_sas_token,src=secrets/azure_sas_token.txt \
+  --secret id=azure_openai_key,src=secrets/azure_openai_api_key.txt \
+  --secret id=azure_openai_key_eus2,src=secrets/azure_openai_api_key_eus2.txt \
+  -t contentcreatie:latest -f DOCKERFILE .

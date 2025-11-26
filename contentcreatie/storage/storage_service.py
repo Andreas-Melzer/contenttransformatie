@@ -53,16 +53,20 @@ class StorageService:
             
             try:
                 conn_str = os.environ.get('AZURE_STORAGE_CONNECTION_STRING')
+                sas_token = os.environ.get('AZURE_SAS_TOKEN')
+                account_url = f"https://{self.storage_account_name}.blob.core.windows.net"
+                
                 if conn_str:
                     print("StorageService: Found Connection String. Using Key-based auth.")
                     self.blob_service_client = BlobServiceClient.from_connection_string(conn_str)
+                elif sas_token:
+                    self.blob_service_client = BlobServiceClient(account_url=account_url, credential=sas_token)
                 else:
-                    # Priority 2: DefaultAzureCredential (Identity/Entra)
                     if not self.storage_account_name:
                         raise ValueError("Storage Account Name missing for Identity Auth.")
                         
                     print("StorageService: No Connection String found. Attempting DefaultAzureCredential...")
-                    account_url = f"https://{self.storage_account_name}.blob.core.windows.net"
+                    
                     self.blob_service_client = BlobServiceClient(account_url, credential=DefaultAzureCredential())
 
                 # Validate connection immediately

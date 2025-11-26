@@ -52,14 +52,14 @@ class MountManager:
 
         self._initialized = True
 
-    def mount(self, blob_name: str, is_directory: bool = False) -> str:
+    def mount(self, blob_name: str, is_directory: bool = False, read_only: bool = False) -> str:
         """
         Registers a file/folder to be managed. 
         Downloads it immediately and returns the local path.
         """
         if blob_name not in self.mounts:
             # Assuming LocalMount is defined as shown in the previous step
-            self.mounts[blob_name] = LocalMount(blob_name, is_directory)
+            self.mounts[blob_name] = LocalMount(blob_name, is_directory,read_only=False)
         
         # Auto-start the background syncer if not running
         if not self.running:

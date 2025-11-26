@@ -3,10 +3,19 @@ import hashlib
 from ..storage.storage_service import storage_service
 
 class LocalMount:
-    def __init__(self, blob_path: str, is_directory: bool = False):
+    def __init__(self, blob_path: str, is_directory: bool = False, read_only: bool = False):
+        """
+        Initializes the LocalMount instance, pulling data from storage.
+
+        :param blob_path: str, The path to the blob or directory in the cloud storage.
+        :param is_directory: bool, Indicates if the path refers to a directory, defaults to False
+        :param read_only: bool, If True, prevents syncing local changes back to the cloud, defaults to False
+        :return: None, None
+        """
         self.blob_path = blob_path
         self.storage = storage_service
         self.is_directory = is_directory
+        self.read_only = read_only
         
         # Construct the absolute path
         self.local_path = os.path.join(self.storage.local_base_path, "mounts", blob_path)
@@ -19,7 +28,11 @@ class LocalMount:
 
     @property
     def path(self) -> str:
-        """Returns the absolute local path of the mount."""
+        """
+        Returns the absolute local path of the mount.
+
+        :return: str, The absolute local filesystem path.
+        """
         return os.path.abspath(self.local_path)
 
     def _pull(self):
@@ -51,14 +64,17 @@ class LocalMount:
                     self._update_internal_state()
                 else:
                     print(f"New local file detected (not in cloud): {self.blob_path}")
-                    
                     pass
 
     def sync_if_dirty(self) -> bool:
         """
-        Checks if the local files have changed since the last sync. 
-        If changed, uploads only the specific modified files.
+        Checks if the local files have changed since the last sync and uploads them if read_only is False.
+
+        :return: bool, True if files were uploaded, False if no changes detected or mount is read_only.
         """
+        if self.read_only:
+            return False
+
         if self.is_directory:
             return self._sync_directory()
         else:
@@ -115,7 +131,9 @@ class LocalMount:
         return files_updated > 0
 
     def _update_internal_state(self):
-        """Updates the internal hash state to match the current disk content."""
+        """
+        Updates the internal hash state to match the current disk content.
+        """
         if self.is_directory:
             self._last_sync_state = self._calculate_directory_state()
         else:

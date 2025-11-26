@@ -1,6 +1,19 @@
-.git
-__pycache__
-venv
-node_modules
-*.tar
-*.gz
+# 1. Negeer de mappen waar je secrets staan
+secrets/
+.secrets/
+
+# 2. Negeer losse sensitive files
+.env
+*.env
+**/*.key
+**/*.pem
+
+# 3. Negeer Git historie (maakt je image onnodig groot)
+.git/
+.gitignore
+
+# 4. Negeer lokale cache en venv (voorkomt vage python errors in de container)
+__pycache__/
+*.pyc
+.venv/
+venv/

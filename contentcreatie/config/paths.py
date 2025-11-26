@@ -37,8 +37,8 @@ class PathSettings(BaseSettings):
                 self.data_root = Path(storage_service.local_base_path)
 
                 self.projects_ledger = Path(mount_manager.mount("projects/projects_ledger.json"))
-                self.content_folder = Path(mount_manager.mount("content", is_directory=True))
-                self.docstore_folder = Path(mount_manager.mount("docstores", is_directory=True))
+                self.content_folder = Path(mount_manager.mount("content", is_directory=True,read_only=True))
+                self.docstore_folder = Path(mount_manager.mount("docstores", is_directory=True,read_only=True))
                 
 
                 self.projects_folder = self.projects_ledger.parent
