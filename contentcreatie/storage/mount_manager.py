@@ -16,7 +16,6 @@ class MountManager:
     _instance = None
     _lock = threading.Lock()
 
-    # FIX: Added *args and **kwargs here so it doesn't crash when arguments are passed
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
             with cls._lock:

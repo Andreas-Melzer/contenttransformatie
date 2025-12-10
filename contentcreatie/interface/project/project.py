@@ -386,6 +386,9 @@ class Project:
 
     def get_domain_filter(self) -> Dict:
         if self._belastingsoort:
+            if self._belastingsoort == "ALLE BELASTINGSOORTEN":
+                return {}
+            
             return {"BELASTINGSOORT": self._belastingsoort}
         else:
             return None

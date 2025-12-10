@@ -12,3 +12,5 @@
 /data/projects/*
 **/local_data/
 secrets/*
+*.tar
+/data/*

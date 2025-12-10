@@ -5,12 +5,13 @@ from contentcreatie.interface.styles.custom_css import apply_custom_css
 from contentcreatie.interface.utils.project_manager import create_project, load_all_projects, load_project,force_delete_project
 from contentcreatie.config.settings import settings
 from logging import getLogger
+from contentcreatie.config.paths import paths
 from contentcreatie.log_config import LogBootstrap
 LogBootstrap.load_config()
 from contentcreatie.storage.storage_service import storage_service
 
-KME_TABLE = pd.read_csv(storage_service.download_as_stringio("kme_vertaaltabel.csv"), sep=';')
-
+KME_TABLE = pd.read_csv(paths.kme_vertaaltabel, sep=';')
+print(paths.projects_folder)
 logger = getLogger("Contenttransformatie")
 
 logo_url = "https://www.belastingdienst.nl/bld-assets/bld/rhslogos/bld_logo.svg"
@@ -47,7 +48,8 @@ with st.form("new_project_form"):
         help="Voer hier één of meerdere subvragen in, gescheiden door een new line."
     )
 
-    belastingsoort_options = KME_TABLE.BELASTINGSOORT.unique()
+    #FIXME magic string "ALLE BELASTINGSOORTEN" ergens anders configureren
+    belastingsoort_options = ["ALLE BELASTINGSOORTEN"] + KME_TABLE.BELASTINGSOORT.unique().tolist()
     proces_options_list = KME_TABLE.PROCES_ONDERWERP.unique()
     product_options_list = KME_TABLE.PRODUCT_SUBONDERWERP.unique()
 
@@ -90,18 +92,15 @@ with st.form("new_project_form"):
         st.session_state.projects = load_all_projects() # Force reload list
         st.rerun()
         
-# --- EXISTING PROJECTS GRID ---
 st.header("Bestaande Projecten")
 
 projects_metadata = st.session_state.get("projects", {})
 if not projects_metadata:
     st.info("Er zijn nog geen projecten. Maak hierboven een nieuw project aan om te beginnen.")
 else:
-    # --- Prepare Data for Grid ---
     project_list = []
     for project_id, data in projects_metadata.items():
         vraag = ""
-        # Handle both dict (ledger) and object (loaded project) formats
         if isinstance(data, dict):
             vraag = data.get("vraag", "Vraag niet gevonden")
             project_list.append({

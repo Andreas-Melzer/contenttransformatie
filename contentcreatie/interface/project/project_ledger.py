@@ -34,7 +34,6 @@ class ProjectLedger:
         """
         # The 'paths' object handles the mounting of this specific file if remote
         ledger_path = paths.projects_ledger
-
         if not ledger_path.exists():
             return {}
 
@@ -54,17 +53,13 @@ class ProjectLedger:
         current_data = self.get_all_projects()
         project_id = project_metadata['id']
         
-        # Optimization: Only write if data actually changed
         if current_data.get(project_id) == project_metadata:
             return
 
         current_data[project_id] = project_metadata
         
-        # Ensure parent directory exists
         paths.projects_ledger.parent.mkdir(parents=True, exist_ok=True)
 
-        # Write to disk. 
-        # If running remotely, MountManager will detect this change and sync it to Azure.
         with open(paths.projects_ledger, 'w', encoding='utf-8') as f:
             json.dump(current_data, f, indent=2)
             
@@ -77,11 +72,9 @@ class ProjectLedger:
             if project_id in current_data:
                 del current_data[project_id]
                 
-                # Ensure parent directory exists
                 if not paths.projects_ledger.parent.exists():
                     return
 
-                # Write to disk (MountManager will auto-sync this change to cloud)
                 with open(paths.projects_ledger, 'w', encoding='utf-8') as f:
                     json.dump(current_data, f, indent=2)
                 
