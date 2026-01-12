@@ -10,9 +10,12 @@ from typing import Any, Dict, List, Optional
 
 # We need BeautifulSoup for HTML parsing
 from bs4 import BeautifulSoup
-from config.settings import Settings
+from contentcreatie.config.settings import Settings
+from contentcreatie.config.paths import paths
 
 settings = Settings()
+
+
 
 
 TAG_ID = re.compile(r"\[\[--ContentED\.([a-z0-9]+)\|\|([^|]+)\|\|([^|]+)\|\|([^-\]]+)--\]\]", re.IGNORECASE)
@@ -130,7 +133,7 @@ def get_all_html_docs(file_name: str) -> Dict[str, Any]:
     :param file_name: str, The name of the zip file in the content_folder.
     :return: Dict[str, Any], Dictionary mapping internal file names to extracted document records.
     """
-    zip_path = settings.content_folder / file_name
+    zip_path = paths.content_folder / file_name
     docs = {}
     
     if not os.path.exists(zip_path):

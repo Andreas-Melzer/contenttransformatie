@@ -7,6 +7,8 @@ secrets/
 *.env
 **/*.key
 **/*.pem
+data/
+test_notebooks/
 
 # 3. Negeer Git historie (maakt je image onnodig groot)
 .git/

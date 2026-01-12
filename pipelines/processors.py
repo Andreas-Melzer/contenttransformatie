@@ -4,13 +4,14 @@ from tqdm import tqdm
 import pandas as pd
 import tqdm
 
-from llm_client.document_vector_store import Document, DocumentStore
-from llm_client.prompt_builder import PromptBuilder
-from llm_client.llm_client import LLMProcessor
+from contentcreatie.llm_client.document_store import Document, DocumentStore
+from contentcreatie.llm_client.prompt_builder import PromptBuilder
+from contentcreatie.llm_client.llm_client import LLMProcessor
 from .kme_doc import KMEDocument
-from config.logger import get_logger
+from logging import getLogger
+# from contentcreatie.config.logger import get_logger
 
-logger = get_logger()
+logger = getLogger("extract")
 
 KME_TABLE: pd.DataFrame = pd.read_csv("data/kme_vertaaltabel.csv", sep=";").set_index("KME_ID")
 

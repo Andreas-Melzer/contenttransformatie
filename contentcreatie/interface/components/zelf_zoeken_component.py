@@ -1,7 +1,6 @@
 # zelf_zoeken_component.py
 # This module contains the Zelf Zoeken functionality as a reusable component
 
-import json
 import streamlit as st
 import pandas as pd
 from utils.project_manager import get_active_project

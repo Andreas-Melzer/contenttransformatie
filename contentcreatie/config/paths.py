@@ -14,7 +14,7 @@ class PathSettings(BaseSettings):
     
 
     base_dir: Path = Path(__file__).resolve().parent.parent.parent
-    
+    print(base_dir)
     data_root: Path = Field(base_dir / "data", validation_alias="DATA_ROOT")
     
     projects_folder: Path = Field(base_dir / "data" / "projects", validation_alias="PROJECTS_FOLDER")
@@ -23,6 +23,7 @@ class PathSettings(BaseSettings):
  
     projects_ledger: Path = Field(base_dir / "data" / "projects" / "projects_ledger.json")
     kme_vertaaltabel :  Path = Field(base_dir / "data" / "kme_vertaaltabel.csv")
+    user_data: Path = Field(base_dir/ "data" / "user_data.json")    
     
     @model_validator(mode='after')
     def configure_mounts(self) -> 'PathSettings':
@@ -39,6 +40,7 @@ class PathSettings(BaseSettings):
                 self.content_folder = Path(mount_manager.mount("content", is_directory=True,read_only=True))
                 self.docstore_folder = Path(mount_manager.mount("docstores", is_directory=True,read_only=True))
                 self.kme_vertaaltabel = Path(mount_manager.mount("kme_vertaaltabel.csv"))
+                self.user_data = Path(mount_manager.mount("user_data.json"))
                 self.projects_folder = self.projects_ledger.parent
                 
             except ImportError as e:

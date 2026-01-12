@@ -1,3 +1,6 @@
+from utils.auth_check import require_access
+user = require_access()
+
 import uuid 
 import pandas as pd
 import streamlit as st

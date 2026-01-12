@@ -1,7 +1,7 @@
 import subprocess
 import os
 import sys
-import mlflow
+
 from contentcreatie.config.settings import settings
 
 def main():

@@ -1,4 +1,5 @@
-
+from utils.auth_check import require_access
+user = require_access()
 import streamlit as st
 import pandas as pd
 from typing import Dict
@@ -10,8 +11,6 @@ from project import Project
 from components.display_selections_ids import display_selection_ids
 from components.agent_sidebar_component import display_agent_sidebar
 from utils.heavy_components import load_heavy_components
-
-
 
 def display_agent_search_results(project: Project, document_dict : Dict[str,int],doc_store):
     """Rendert de documententabel met AG Grid voor een interactieve ervaring."""

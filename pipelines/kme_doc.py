@@ -1,4 +1,4 @@
-from llm_client.document_vector_store import (
+from contentcreatie.llm_client.document import (
     Document,
 )
 from dataclasses import dataclass
