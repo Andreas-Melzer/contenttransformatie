@@ -1,6 +1,3 @@
-# zelf_zoeken_component.py
-# This module contains the Zelf Zoeken functionality as a reusable component
-
 import streamlit as st
 import pandas as pd
 from utils.project_manager import get_active_project
@@ -176,7 +173,7 @@ def display_zelf_zoeken():
         display_kme_document_grid_with_selector(df, active_project, session_key="zelfzoeken_selected_docs", grid_key="zelfzoeken_grid")
 
         with c1:
-            if st.button(f"Voeg selectie toe ({len(st.session_state.zelfzoeken_selected_docs)})", type="primary", use_container_width=True):
+            if st.button(f"Voeg selectie toe ({len(st.session_state.zelfzoeken_selected_docs)})", type="primary", width="stretch"):
                 cnt = 0
                 for doc_id in st.session_state.zelfzoeken_selected_docs:
                     if doc_id and doc_id not in active_project.self_found_documents:
@@ -185,7 +182,7 @@ def display_zelf_zoeken():
                 st.success(f"{cnt} documenten toegevoegd aan selectie.")
 
         with c2:
-            if st.button("Leeg selectie", use_container_width=True):
+            if st.button("Leeg selectie", width="stretch"):
                 st.session_state.zelfzoeken_selected_docs = []
                 st.rerun()
 

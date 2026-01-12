@@ -34,13 +34,12 @@ def get_active_project() -> Project | None:
     if not active_id:
         st.error("Selecteer alstublieft een project op het dashboard.")
         if st.button("Ga naar Dashboard"):
-            st.switch_page("0_Project_Selectie.py")
+            st.switch_page("pages/0_Project_Selectie.py")
         st.stop()
         return None
 
     project = st.session_state.projects.get(active_id)
     
-    # Als het project in session state slechts een preview (dict) is, laad de volledige versie.
     if isinstance(project, dict):
         project = load_project(active_id)
         if project:
@@ -71,11 +70,9 @@ def load_project(project_id: str) -> Project | None:
     except FileNotFoundError:
         print(f"Project file missing for {project_id}. Attempting resurrection from Ledger...")
         
-        # FETCH FROM LEDGER
         ledger_data = project_ledger.get_all_projects().get(project_id)
         
         if ledger_data:
-            # Reconstruct the object using the ledger cache
             project = Project(
                 project_id=ledger_data.get("id"),
                 vraag=ledger_data.get("vraag"),
@@ -84,7 +81,6 @@ def load_project(project_id: str) -> Project | None:
                 proces_onderwerp=ledger_data.get("proces_onderwerp"),
                 product_subonderwerp=ledger_data.get("product_subonderwerp")
             )
-            # Auto-heal: Save it immediately to restore the physical file
             project.save()
             return project
         else:
@@ -96,11 +92,9 @@ def force_delete_project(project_id: str):
     Does NOT require loading the project object first.
     Useful for corrupted projects that cannot be opened.
     """
-    # 1. Remove from Ledger
+    
     project_ledger.delete_project(project_id)
-
-    # 2. Identify files
-    # We manually construct paths since we don't have an object instance
+    
     files_to_remove = [
         f"projects/{project_id}.json",
         f"projects/{project_id}_search.json",
@@ -121,10 +115,7 @@ def force_delete_project(project_id: str):
         except ImportError:
             pass
 
-    # 4. Local Disk Cleanup
-    # We guess the local path based on the paths config
     for blob_name in files_to_remove:
-        # Assuming standard structure: local_root/projects/filename
         filename = os.path.basename(blob_name)
         local_path = paths.projects_folder / filename
         
@@ -134,3 +125,6 @@ def force_delete_project(project_id: str):
                 print(f"Force deleted local: {local_path}")
             except OSError:
                 pass
+            
+    if st.session_state.get("active_project_id") == project_id:
+        st.session_state.active_project_id = None

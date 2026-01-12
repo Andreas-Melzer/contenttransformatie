@@ -1,9 +1,5 @@
-from utils.auth_check import require_access
-user = require_access()
-               
 import streamlit as st
 import json
-
 from contentcreatie.llm_client.llm_client import json_decode
 import pandas as pd
 from implementations.tools.save_consolidated_json_tool import SaveConsolidatedJsonTool
@@ -15,8 +11,6 @@ from utils.project_manager import get_active_project
 from utils.consolidation_utils import format_consolidated_json
 
 active_project = get_active_project()
-st.set_page_config(layout="wide", page_title="Consolideren")
-
 _ , doc_store , _ = load_heavy_components()
 
 if 'consolidate_selected_docs' not in st.session_state:

@@ -1,6 +1,3 @@
-from utils.auth_check import require_access
-user = require_access()
-
 import uuid 
 import pandas as pd
 import streamlit as st
@@ -14,17 +11,7 @@ LogBootstrap.load_config()
 from contentcreatie.storage.storage_service import storage_service
 
 KME_TABLE = pd.read_csv(paths.kme_vertaaltabel, sep=';')
-print(paths.projects_folder)
 logger = getLogger("Contenttransformatie")
-
-logo_url = "https://www.belastingdienst.nl/bld-assets/bld/rhslogos/bld_logo.svg"
-
-st.set_page_config(
-    page_title="Content Creatie Dashboard",
-    page_icon=logo_url,
-    layout="wide",
-)
-
 apply_custom_css()
 
 def initialize_session_state():
@@ -36,7 +23,7 @@ def initialize_session_state():
         
 initialize_session_state() 
 
-st.image(logo_url, width=500)
+st.image(st.session_state.logo_url, width=500)
 st.title("Content Projecten")
 
 # --- NEW PROJECT FORM ---
@@ -137,7 +124,7 @@ else:
         key='projects_grid',
         on_select="rerun",
         selection_mode="single-row",
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "project_id": None, # Hide ID
@@ -162,12 +149,12 @@ else:
         col1, col2, col3 = st.columns([1, 1, 4])
         
         with col1:
-            if st.button("📂 Open Project", type="primary", use_container_width=True):
+            if st.button("📂 Open Project", type="primary", width="stretch"):
                 st.session_state.active_project_id = selected_project_id
                 st.switch_page("pages/1_Zoeken_en_Selecteren.py")
 
         with col2:
-            if st.button("🔄 Reset", help="Wist alle voortgang, maar behoudt de vraag.", use_container_width=True):
+            if st.button("🔄 Reset", help="Wist alle voortgang, maar behoudt de vraag.", width="stretch"):
                 proj = load_project(selected_project_id)
                 if proj:
                     proj.reset()

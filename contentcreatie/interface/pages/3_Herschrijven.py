@@ -1,12 +1,8 @@
-from utils.auth_check import require_access
-user = require_access()
-
 import streamlit as st
 from utils.project_manager import get_active_project
 from components.agent_sidebar_component import display_agent_sidebar
 
 active_project = get_active_project()
-st.set_page_config(layout="wide", page_title="Herschrijven")
 
 st.title(f"Project: \"{active_project.vraag}\"")
 st.header("Stap 3: Herschrijven van Geconsolideerde Content")

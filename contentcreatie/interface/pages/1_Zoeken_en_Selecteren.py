@@ -1,5 +1,3 @@
-from utils.auth_check import require_access
-user = require_access()
 import streamlit as st
 import pandas as pd
 from typing import Dict
@@ -40,13 +38,13 @@ def display_agent_search_results(project: Project, document_dict : Dict[str,int]
     display_kme_document_grid_with_selector(df, project, session_key="selected_docs", grid_key="agent_grid")
 
     with col1:
-        if st.button(f"Selectie Opslaan ({len(st.session_state.selected_docs)})", type="primary",use_container_width=True):
+        if st.button(f"Selectie Opslaan ({len(st.session_state.selected_docs)})", type="primary",width="stretch"):
             project.saved_selection_consolidate = st.session_state.selected_docs
             st.success(f"{len(st.session_state.selected_docs)} documenten opgeslagen voor de volgende stap.")
             st.rerun()
 
     with col2:
-        if st.button(f"Verwijder Selectie ({len(st.session_state.selected_docs)})",use_container_width=True):
+        if st.button(f"Verwijder Selectie ({len(st.session_state.selected_docs)})",width="stretch"):
             for doc_id in st.session_state.selected_docs:
                 if doc_id in project.agent_found_documents:
                     del project.agent_found_documents[doc_id]
@@ -55,7 +53,7 @@ def display_agent_search_results(project: Project, document_dict : Dict[str,int]
             st.session_state.selected_docs = []
             st.rerun()
     with col3:
-        if st.button(f"Alles verwijderen",use_container_width=True):
+        if st.button(f"Alles verwijderen",width="stretch"):
             project.agent_found_documents = {}
             project.self_found_documents ={}
             project.saved_selection_consolidate = []
@@ -67,8 +65,6 @@ def display_agent_search_results(project: Project, document_dict : Dict[str,int]
 
     
 active_project =get_active_project()
-st.set_page_config(layout="wide", page_title="Zoeken en selecteren")
-
 _, doc_store, _ = load_heavy_components()
 
 
