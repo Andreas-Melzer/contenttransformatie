@@ -38,9 +38,9 @@ with st.form("new_project_form"):
     )
 
     #FIXME magic string "ALLE BELASTINGSOORTEN" ergens anders configureren
-    belastingsoort_options = ["ALLE BELASTINGSOORTEN"] + KME_TABLE.BELASTINGSOORT.unique().tolist()
-    proces_options_list = KME_TABLE.PROCES_ONDERWERP.unique()
-    product_options_list = KME_TABLE.PRODUCT_SUBONDERWERP.unique()
+    belastingsoort_options = ["ALLE BELASTINGSOORTEN"] + KME_TABLE['BELASTINGSOORT'].str.split('/',n=1).str[0].sort_values().unique().tolist()
+    proces_options_list = KME_TABLE['PROCES_ONDERWERP'].str.split('/',n=1).str[0].sort_values().unique()
+    product_options_list = KME_TABLE['PRODUCT_SUBONDERWERP'].str.split('/',n=1).str[0].sort_values().unique()
 
     belastingsoort = st.selectbox(
         "Selecteer Belastingsoort",

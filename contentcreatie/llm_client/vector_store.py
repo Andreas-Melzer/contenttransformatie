@@ -134,6 +134,17 @@ class VectorStore:
                     self._save()
         else:
             all_doc_ids = self.doc_store.get_all_ids()
+            current_hashed_ids = {get_stable_id(doc_id) for doc_id in all_doc_ids}
+            ids_to_remove = self.indexed_ids - current_hashed_ids
+            
+            if ids_to_remove:
+                print(f"Found {len(ids_to_remove)} obsolete vectors (removed from DocumentStore). Removing from index...")
+                ids_to_remove_np = np.array(list(ids_to_remove), dtype='int64')
+                
+                self.index.remove_ids(ids_to_remove_np)
+                self.indexed_ids.difference_update(ids_to_remove)
+                self._save()
+
             docs_to_index = []
             for doc_id in all_doc_ids:
                 hid = get_stable_id(doc_id)
@@ -142,12 +153,13 @@ class VectorStore:
                     if doc:
                         docs_to_index.append(doc)
 
-            if not docs_to_index:
-                print("VectorStore is already in sync. No new documents to add.")
+            if not docs_to_index and not ids_to_remove:
+                print("VectorStore is already in sync. No changes made.")
                 return
 
-            print(f"Found {len(docs_to_index)} missing documents. Indexing in batches of {self.batch_size}...")
-            self.add(docs_to_index, refresh=False)
+            if docs_to_index:
+                print(f"Found {len(docs_to_index)} missing documents. Indexing in batches of {self.batch_size}...")
+                self.add(docs_to_index, refresh=False)
 
         self._save()
         print("Sync complete.")
@@ -212,7 +224,7 @@ class VectorStore:
 
         results = []
         for dist, hid in zip(distances[0], hashed_ids[0]):
-            if hid == -1:  # FAISS returns -1 for empty slots if k > num_results
+            if hid == -1:
                 continue
             doc_id = id_map.get(int(hid))
             if not doc_id:
