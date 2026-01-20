@@ -26,7 +26,6 @@ initialize_session_state()
 st.image(st.session_state.logo_url, width=500)
 st.title("Content Projecten")
 
-# --- NEW PROJECT FORM ---
 st.header("Nieuw Project Starten")
 with st.form("new_project_form"):
     project_question = st.text_area(

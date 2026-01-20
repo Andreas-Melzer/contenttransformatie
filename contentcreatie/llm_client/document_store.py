@@ -208,14 +208,11 @@ class DocumentStore:
             print(f"Error loading Parquet file {self.persistence_file}: {e}. Returning empty store.")
             return {}
         
-    # --- MODIFIED: Replaced Pickle logic with Parquet logic ---
     def _save(self):
         """Saves the current document dictionary to a Parquet file."""
         if not self.documents:
-            # Save an empty DataFrame with the correct schema
             df = pd.DataFrame(columns=['id', 'title', 'content', 'metadata'])
         else:
-            # Convert dict of Document objects to a list of dicts
             doc_list = [asdict(doc) for doc in self.documents.values()]
             df = pd.DataFrame.from_records(doc_list)
             
@@ -223,12 +220,10 @@ class DocumentStore:
             df['metadata'] = df['metadata'].apply(json.dumps)
         
         try:
-            # Save to Parquet using pyarrow engine
             df.to_parquet(self.persistence_file, index=False, engine='pyarrow')
         except Exception as e:
             print(f"Error saving Parquet file {self.persistence_file}: {e}")
     
-    # --- MODIFIED: Fixed bug (was _save() instead of self._save()) ---
     def save(self):
         """Public method to trigger a save of the document store."""
         self._save()

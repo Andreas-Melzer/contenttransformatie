@@ -1,13 +1,14 @@
 import streamlit as st
 from project import Project
 from utils.rewrite_utils import enrich_consolidation
-from utils.heavy_components import load_heavy_components ,AgentType, get_agent
+from utils.heavy_components import load_heavy_components, AgentType, get_agent
 from logging import getLogger
+
 logger = getLogger("Contenttransformatie")
 
-_,doc_store,_ = load_heavy_components()
+_, doc_store, _ = load_heavy_components()
 
-
+# --- Agent Configuration ---
 AGENT_CONFIG = {
     "search": {
         "messages_attr": "search_messages",
@@ -31,8 +32,8 @@ AGENT_CONFIG = {
             hoofdvraag=project.vraag,
             subvragen=project.subvragen,
             selected_documents={
-                doc_id:  doc_store.documents[doc_id]
-                for doc_id in project.saved_selection_consolidate
+                doc_id: doc_store.documents[doc_id]
+                for doc_id in project.saved_selection_consolidate if doc_id in doc_store.documents.keys()
             },
             max_tool_turns=15
         )
@@ -46,8 +47,8 @@ AGENT_CONFIG = {
             query=query,
             hoofdvraag=project.vraag,
             subvragen=project.subvragen,
-            geconsolideerde_tekst= enrich_consolidation(project.consolidated_json,doc_store),
-            herschreven_tekst = project.rewritten_text,
+            geconsolideerde_tekst=enrich_consolidation(project.consolidated_json, doc_store),
+            herschreven_tekst=project.rewritten_text,
             max_tool_turns=15
         )
     }
@@ -56,22 +57,20 @@ AGENT_CONFIG = {
 def display_agent_sidebar(project: Project, agent_type: AgentType):
     """
     Displays a generic, data-driven agent sidebar component.
-
-    :param project: Project, The current project
-    :param agent_type: str, The name of the agent to use, defaults to 'agent'
-    :param doc_store: Any, The document store object, defaults to None
-    :return: None, This function does not return anything.
+    The logic for processing agent runs independently of UI visibility.
     """
     config = AGENT_CONFIG.get(agent_type)
     if not config:
         st.sidebar.error(f"Agent '{agent_type}' is not configured.")
         return
 
-    agent = get_agent(project,agent_type)
+    agent = get_agent(project, agent_type)
     messages = getattr(project, config["messages_attr"], [])
+    
     if not agent:
         logger.error("Unable to create agent")
-        
+        return
+
     with st.sidebar:
         st.title(config["title"])
         st.write(config["description"])
@@ -84,22 +83,35 @@ def display_agent_sidebar(project: Project, agent_type: AgentType):
             st.session_state.chat_visible = not st.session_state.chat_visible
             st.rerun()
 
+ 
+        if agent and messages and messages[-1]["role"] == "user":
+            with st.status("Agent is aan het werk...", expanded=True):
+                query = messages[-1]["content"]
+                # Call the specific handler defined in AGENT_CONFIG
+                config["chat_handler"](agent, query, project, doc_store)
+                # Sync messages back to the project object
+                setattr(project, config["messages_attr"], agent.messages)
+            st.rerun()
+
         if st.session_state.chat_visible:
             chat_container = st.container(height=300)
             with chat_container:
                 for message in messages:
-                    if message["role"] == "user":
-                        with st.chat_message("user"):
-                            st.markdown(message["content"])
-                    elif message["role"] == "assistant" and message.get("content"):
-                        with st.chat_message("assistant"):
-                            st.markdown(message["content"])
+                    role = message["role"]
+                    content = message.get("content")
+                    if role in ["user", "assistant"] and content:
+                        with st.chat_message(role):
+                            st.markdown(content)
 
+            # Chat Input
             if prompt := st.chat_input(config["placeholder"]):
                 messages.append({"role": "user", "content": prompt})
+                setattr(project, config["messages_attr"], messages)
                 st.rerun()
 
             st.divider()
+            
+            # Agent Scratchpad / Reasoning
             with st.expander("Kladblok van de Agent"):
                 scratchpad = getattr(agent, 'scratchpad', []) if agent else []
                 if not scratchpad:
@@ -110,15 +122,8 @@ def display_agent_sidebar(project: Project, agent_type: AgentType):
                         task_text = task.get('task', 'N/A')
                         st.markdown(f"✅ ~~{task_text}~~" if completed else f"☐ {task_text}")
 
-            if agent and messages and messages[-1]["role"] == "user":
-                with st.chat_message("assistant"):
-                    with st.spinner("Agent is aan het werk..."):
-                        query = messages[-1]["content"]
-                        config["chat_handler"](agent, query, project, doc_store)
-                        setattr(project, config["messages_attr"], agent.messages)
-                        st.rerun()
-
-        if st.button("Clear messages", type="secondary"):
+        # 5. Persistent Utility Buttons (Visible regardless of chat visibility)
+        if st.button("Clear messages", key=f"clear_{agent_type}", type="secondary"):
             setattr(project, config["messages_attr"], [])
             if hasattr(agent, 'reset'):
                 agent.reset()

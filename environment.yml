@@ -53,5 +53,7 @@ dependencies:
     - JsonExtractor
     - tiktoken
     - st-combobox
+    - bcrypt
+    - extra-streamlit-components
 
 
