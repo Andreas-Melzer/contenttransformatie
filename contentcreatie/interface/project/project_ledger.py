@@ -7,7 +7,7 @@ import json
 import os
 from typing import Dict, Any
 from contentcreatie.config.paths import paths
-
+from datetime import datetime
 class ProjectLedger:
     """
     Singleton service that manages the index of all available projects.
@@ -32,14 +32,20 @@ class ProjectLedger:
 
         :return: Dict[str, Any], A dictionary of project metadata keyed by ID.
         """
-        # The 'paths' object handles the mounting of this specific file if remote
         ledger_path = paths.projects_ledger
         if not ledger_path.exists():
             return {}
 
         try:
             with open(ledger_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                ledger = json.load(f)
+                for project_id in ledger.keys():
+                    if 'last_accesed_datetime' not in ledger[project_id]:
+                        ledger[project_id]['last_accesed_datetime'] = datetime.now().isoformat()
+                
+                    if "archived" not in ledger[project_id]:
+                        ledger[project_id]['archived'] = False
+                return ledger
         except (json.JSONDecodeError, FileNotFoundError):
             return {}
 

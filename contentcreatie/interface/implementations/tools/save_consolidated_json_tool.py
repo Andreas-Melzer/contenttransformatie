@@ -8,23 +8,15 @@ class SaveConsolidatedJsonTool(ToolBase):
     """
     def __init__(
         self,
-        project:Project,
+        project: Project,
         on_call: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_result: Optional[Callable[[Dict[str, Any]], Union[str, None]]] = None,
-
     ):
-        """Initializes the tool, passing callbacks to the base class.
-        :param on_call: Optional[Callable[[Dict[str, Any]], None]], Callback function to be executed when the tool is called, defaults to None
-        :param on_result: Optional[Callable[[Dict[str, Any]], Union[str, None]]], Callback function to be executed with the result of the tool, defaults to None
-        """
         self.project = project
         super().__init__(on_call=on_call, on_result=on_result)
 
     @property
     def schema(self) -> Dict[str, Any]:
-        """Defines the schema for the save consolidated JSON tool.
-        :return: Dict[str, Any], The JSON schema definition for the tool.
-        """
         fragment_schema = {
             "type": "object",
             "properties": {
@@ -51,10 +43,7 @@ class SaveConsolidatedJsonTool(ToolBase):
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "hoofdvraag": {
-                            "type": "string",
-                            "description": "De hoofdvraag van het project."
-                        },
+                        "hoofdvraag": {"type": "string"},
                         "consolidatie": {
                             "type": "array",
                             "items": {
@@ -64,7 +53,7 @@ class SaveConsolidatedJsonTool(ToolBase):
                                     "publieke_informatie": fragment_schema,
                                     "interne_informatie": fragment_schema
                                 },
-                                "required": ["vraag", "publieke_informatie", "interne_informatie"]
+                                "required": ["vraag", "publieke_informatie"]
                             }
                         },
                         "subvragen_consolidatie": {
@@ -76,7 +65,7 @@ class SaveConsolidatedJsonTool(ToolBase):
                                     "publieke_informatie": fragment_schema,
                                     "interne_informatie": fragment_schema
                                 },
-                                "required": ["vraag", "publieke_informatie", "interne_informatie"]
+                                "required": ["vraag", "publieke_informatie"]
                             }
                         },
                         "gedetecteerde_conflicten": {
@@ -85,10 +74,7 @@ class SaveConsolidatedJsonTool(ToolBase):
                                 "type": "object",
                                 "properties": {
                                     "conflict_beschrijving": {"type": "string"},
-                                    "bron_km": {
-                                        "type": "array",
-                                        "items": {"type": "string"}
-                                    }
+                                    "bron_km": {"type": "array", "items": {"type": "string"}}
                                 },
                                 "required": ["conflict_beschrijving", "bron_km"]
                             }
@@ -105,38 +91,37 @@ class SaveConsolidatedJsonTool(ToolBase):
                             }
                         }
                     },
-                    "required": [
-                        "hoofdvraag",
-                        "consolidatie",
-                        "subvragen_consolidatie",
-                        "gedetecteerde_conflicten",
-                        "informatie_hiaten"
-                    ]
+                    "required": ["hoofdvraag", "consolidatie"]
                 }
             }
         }
 
-    def _execute(self, hoofdvraag: str, consolidatie: List, subvragen_consolidatie: List, gedetecteerde_conflicten: List, informatie_hiaten: List) -> str:
-        """Updates the active project's consolidated JSON content and saves it.
-        :param hoofdvraag: str, The main question of the project.
-        :param consolidatie: List, The consolidated information related to the main question.
-        :param subvragen_consolidatie: List, The consolidated information related to the sub-questions.
-        :param gedetecteerde_conflicten: List, A list of detected conflicts in the information.
-        :param informatie_hiaten: List, A list of identified information gaps.
-        :return: str, A confirmation or error message.
-        """
+    def _execute(
+        self, 
+        hoofdvraag: str, 
+        consolidatie: List, 
+        subvragen_consolidatie: List = None, 
+        gedetecteerde_conflicten: List = None, 
+        informatie_hiaten: List = None
+    ) -> str:
         try:
+            # Helper to ensure interne_informatie exists in list items
+            def normalize_items(items):
+                if not items: return []
+                for item in items:
+                    if "interne_informatie" not in item:
+                        item["interne_informatie"] = {"fragmenten": []}
+                return items
 
             consolidated_data = {
                 "hoofdvraag": hoofdvraag,
-                "consolidatie": consolidatie,
-                "subvragen_consolidatie": subvragen_consolidatie,
-                "gedetecteerde_conflicten": gedetecteerde_conflicten,
-                "informatie_hiaten": informatie_hiaten
+                "consolidatie": normalize_items(consolidatie),
+                "subvragen_consolidatie": normalize_items(subvragen_consolidatie),
+                "gedetecteerde_conflicten": gedetecteerde_conflicten or [],
+                "informatie_hiaten": informatie_hiaten or []
             }
             
             self.project.consolidated_json = consolidated_data
-            
-            return f"Consolidated JSON content for project {self.project} updated and saved successfully."
+            return "Consolidated JSON content updated successfully."
         except Exception as e:
-            return f"Error updating consolidated JSON content for project {self.project}: {e}"
+            return f"Error updating consolidated JSON content: {e}"

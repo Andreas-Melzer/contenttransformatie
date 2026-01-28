@@ -20,7 +20,6 @@ class SaveRewrittenJsonTool(ToolBase):
 
     @property
     def schema(self) -> Dict[str, Any]:
-        """Defines the schema for the save rewritten JSON tool."""
         return {
             "type": "function",
             "function": {

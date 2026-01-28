@@ -17,7 +17,6 @@ class ListSelectedDocumentsTool(ToolBase):
 
     @property
     def schema(self) -> Dict[str, Any]:
-        """Defines the schema for the list selected documents tool."""
         return {
             "type": "function",
             "function": {

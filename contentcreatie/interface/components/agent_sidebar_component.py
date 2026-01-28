@@ -8,7 +8,6 @@ logger = getLogger("Contenttransformatie")
 
 _, doc_store, _ = load_heavy_components()
 
-# --- Agent Configuration ---
 AGENT_CONFIG = {
     "search": {
         "messages_attr": "search_messages",
@@ -87,9 +86,7 @@ def display_agent_sidebar(project: Project, agent_type: AgentType):
         if agent and messages and messages[-1]["role"] == "user":
             with st.status("Agent is aan het werk...", expanded=True):
                 query = messages[-1]["content"]
-                # Call the specific handler defined in AGENT_CONFIG
                 config["chat_handler"](agent, query, project, doc_store)
-                # Sync messages back to the project object
                 setattr(project, config["messages_attr"], agent.messages)
             st.rerun()
 
@@ -103,7 +100,6 @@ def display_agent_sidebar(project: Project, agent_type: AgentType):
                         with st.chat_message(role):
                             st.markdown(content)
 
-            # Chat Input
             if prompt := st.chat_input(config["placeholder"]):
                 messages.append({"role": "user", "content": prompt})
                 setattr(project, config["messages_attr"], messages)
@@ -111,7 +107,6 @@ def display_agent_sidebar(project: Project, agent_type: AgentType):
 
             st.divider()
             
-            # Agent Scratchpad / Reasoning
             with st.expander("Kladblok van de Agent"):
                 scratchpad = getattr(agent, 'scratchpad', []) if agent else []
                 if not scratchpad:
@@ -122,7 +117,6 @@ def display_agent_sidebar(project: Project, agent_type: AgentType):
                         task_text = task.get('task', 'N/A')
                         st.markdown(f"✅ ~~{task_text}~~" if completed else f"☐ {task_text}")
 
-        # 5. Persistent Utility Buttons (Visible regardless of chat visibility)
         if st.button("Clear messages", key=f"clear_{agent_type}", type="secondary"):
             setattr(project, config["messages_attr"], [])
             if hasattr(agent, 'reset'):

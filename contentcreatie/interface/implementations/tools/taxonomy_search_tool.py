@@ -33,7 +33,6 @@ class TaxnomySearchTool(ToolBase):
 
     @property
     def schema(self) -> Dict[str, Any]:
-        """Functieschema met expliciete parameters voor de 3 velden."""
         fields_txt = ", ".join(sorted(self.indexed_metadata_keys)) if self.indexed_metadata_keys else "—"
         description = (
             "Zoekt in document-metadata met verplichte BELASTINGSOORT en optionele "

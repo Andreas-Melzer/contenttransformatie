@@ -19,7 +19,6 @@ class ReadDocumentsTool(ToolBase):
 
     @property
     def schema(self) -> Dict[str, Any]:
-        """Defines the schema for the read documents tool."""
         return {
             "type": "function",
             "function": {

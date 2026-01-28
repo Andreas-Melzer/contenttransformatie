@@ -8,7 +8,8 @@ from utils.debounce import debounce
 from contentcreatie.interface.project.project_ledger import project_ledger
 from contentcreatie.storage.mount_manager import mount_manager
 from contentcreatie.storage.storage_service import storage_service
-
+from contentcreatie.storage.mount_manager import mount_manager
+from datetime import datetime
 class Project:
     """
     Encapsulates all data and logic for a single content creation project,
@@ -22,7 +23,9 @@ class Project:
         self._belastingsoort: Optional[str] = belastingsoort
         self._proces_onderwerp: Optional[str] = proces_onderwerp
         self._product_subonderwerp: Optional[str] = product_subonderwerp
-
+        self._last_accesed_datetime: datetime = None
+        self._archived: bool = False
+        
         # Default values for Search Data
         self._search_messages: List[Dict[str, Any]] = []
         self._agent_found_documents: Dict[str, Any] = {}
@@ -41,7 +44,7 @@ class Project:
         self._rewritten_text: str = {}
         self._rewritten_json: Dict = {}
 
-    # --- Path Helpers ---
+        
     def _get_path(self, suffix: str = "") -> str:
         """Constructs the file path for project files."""
         return str(paths.projects_folder / f"{self.id}{suffix}.json")
@@ -73,13 +76,13 @@ class Project:
         if not paths.projects_folder.exists():
             paths.projects_folder.mkdir(parents=True, exist_ok=True)
         
-        # 1. Save Metadata
+
         metadata_path = self._get_path()
         metadata = self.to_metadata_dict()
+        metadata['last_accesed_datetime'] = datetime.now().isoformat()
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=4)
             
-        # 2. Save Data Chunks
         search_path = self._get_search_data_path()
         with open(search_path, "w", encoding="utf-8") as f:
             json.dump(self.to_search_data_dict(), f, indent=4)
@@ -92,7 +95,6 @@ class Project:
         with open(rewrite_path, "w", encoding="utf-8") as f:
             json.dump(self.to_rewrite_data_dict(), f, indent=4)
         
-        # 3. Update Ledger
         project_ledger.update_project(metadata)
         
         if paths.remote:
@@ -117,12 +119,9 @@ class Project:
         If running in Remote mode, it lazily mounts (downloads) only the necessary files.
         """
         
-        # --- Lazy Mount Strategy ---
         if paths.remote:
             try:
-                from contentcreatie.storage.mount_manager import mount_manager
-                # Mount the 4 specific files required for this project
-                # This avoids downloading the entire 'projects' folder
+
                 files_to_mount = [
                     f"projects/{project_id}.json",
                     f"projects/{project_id}_search.json",
@@ -134,7 +133,7 @@ class Project:
             except ImportError:
                 print("Warning: Remote set to True but MountManager not found.")
 
-        # --- Standard Load Logic ---
+    
         metadata_path = paths.projects_folder / f"{project_id}.json"
 
         if not metadata_path.exists():
@@ -151,6 +150,7 @@ class Project:
             proces_onderwerp=metadata.get("proces_onderwerp"),
             product_subonderwerp=metadata.get("product_subonderwerp")
         )
+        project._last_accesed_datetime = metadata.get("last_accesed_datetime",datetime.now().isoformat())
         
         # Load Search Data
         search_path = project._get_search_data_path()
@@ -192,10 +192,10 @@ class Project:
         3. Deletes from Blob Storage (permanent data loss).
         4. Cleans up local disk.
         """
-        # 1. Remove from Ledger
+
         project_ledger.delete_project(self.id)
 
-        # List of all associated files
+
         files_to_remove = [
             (f"projects/{self.id}.json", self._get_path()),
             (f"projects/{self.id}_search.json", self._get_search_data_path()),
@@ -204,15 +204,11 @@ class Project:
         ]
         if paths.remote:
             for blob_name, local_path in files_to_remove:
-                # A. Stop tracking (Unmount)
                 mount_manager.unmount(blob_name)
                 
-                # B. Delete directly from Azure
                 storage_service.delete_blob(blob_name)
                 print(f"Deleted blob: {blob_name}")
 
-        # 3. Local Disk Cleanup
-        # We explicitly delete local files to free up space/clean state
         for _, local_path in files_to_remove:
             if os.path.exists(local_path):
                 try:
@@ -247,10 +243,7 @@ class Project:
             self._rewritten_text = ""
             self._rewritten_json = {}
             
-            # 4. Save the "Empty" state to disk/cloud immediately
-            # This overwrites the existing files with empty lists/dicts
             self.save()
-            
             print("Project reset complete.")
             
     def to_metadata_dict(self) -> Dict[str, Any]:
@@ -261,6 +254,8 @@ class Project:
             "belastingsoort": self._belastingsoort,
             "proces_onderwerp": self._proces_onderwerp,
             "product_subonderwerp": self._product_subonderwerp,
+            "last_accesed_datetime" : self._last_accesed_datetime,
+            "archived" :self._archived
         }
         
     def to_search_data_dict(self) -> Dict[str, Any]:
@@ -384,6 +379,11 @@ class Project:
     @rewritten_json.setter
     def rewritten_json(self, value: Dict): self._rewritten_json = value; self.save()
 
+    @property
+    def archived(self) -> bool : return self._archived
+    @archived.setter
+    def archived(self, value: bool): self._archived = value; self.save()
+    
     def get_domain_filter(self) -> Dict:
         if self._belastingsoort:
             if self._belastingsoort == "ALLE BELASTINGSOORTEN":

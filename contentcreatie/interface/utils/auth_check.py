@@ -8,7 +8,6 @@ from pathlib import Path
 from contentcreatie.config.paths import paths
 
 def get_manager():
-    # Zorg voor een unieke key om re-renders te voorkomen
     return cookie_manager.CookieManager(key="auth_cookie_manager")
 
 def require_access():
@@ -23,7 +22,7 @@ def require_access():
         st.session_state.cached_user_email = saved_user
         return saved_user
 
-    st.title("🔒 Inloggen")
+    st.title("Inloggen")
     
     with st.form("login_form"):
         email_input = st.text_input("E-mailadres", autocomplete="username").lower().strip()
@@ -42,13 +41,12 @@ def require_access():
                 if stored_hash and bcrypt.checkpw(password_input.encode('utf-8'), stored_hash.encode('utf-8')):
                     st.session_state.cached_user_email = email_input
                     
-                    # FIX: Gebruik datetime i.p.v. time.time()
                     expiry_date = datetime.now() + timedelta(days=30)
                     
                     cookie_mgr.set(
                         "auth_user_email", 
                         email_input, 
-                        expires_at=expiry_date # Dit is nu een datetime object
+                        expires_at=expiry_date 
                     )
                     
                     st.success("Succesvol ingelogd!")
